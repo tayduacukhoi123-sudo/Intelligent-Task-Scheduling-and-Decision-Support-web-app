@@ -28,7 +28,12 @@ User inputs tasks → multi-criteria scoring (urgency, importance, severity, dea
 │   ├── schedule.py        
 │   └── history.py          
 ├── algorithm/
-│   └── scoring.py          
+│   └── scoring.py 
+├── docs/                  
+│   ├── api_spec.md         
+│   ├── uc_diagram.xml
+│   ├── sequence_diagram.xml
+│   └── erd_diagram.xml
 └── frontend/
     ├── index.html
     ├── tasks.html

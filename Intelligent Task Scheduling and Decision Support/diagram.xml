@@ -1,0 +1,84 @@
+<mxGraphModel dx="1303" dy="3139" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1654" pageHeight="2336" math="0" shadow="0">
+  <root>
+    <mxCell id="0" />
+    <mxCell id="1" parent="0" />
+    <mxCell id="t_title" parent="1" style="text;html=1;strokeColor=light-dark(#82B366,#FFFFFF);fillColor=none;align=center;verticalAlign=middle;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;fontSize=13;fontStyle=1;rounded=1;" value="Task" vertex="1">
+      <mxGeometry height="30" width="220" x="410" y="-210" as="geometry" />
+    </mxCell>
+    <mxCell id="t_id" parent="1" style="text;html=1;strokeColor=light-dark(#82B366,#FFFFFF);fillColor=none;align=left;verticalAlign=middle;spacingLeft=10;overflow=hidden;rotatable=0;fontSize=12;" value="PK  id (INT)&lt;div&gt;&lt;span style=&quot;font-style: italic;&quot;&gt;FK user_id (INT)&lt;/span&gt;&lt;/div&gt;&lt;div&gt;title (VARCHAR)&lt;/div&gt;&lt;div&gt;urgency (INT 1–5)&lt;/div&gt;&lt;div&gt;importance (INT 1–5)&lt;/div&gt;&lt;div&gt;estimated_time (INT)&lt;/div&gt;&lt;div&gt;status (ENUM)&lt;/div&gt;&lt;div&gt;flexibility (BOOLEAN)&lt;/div&gt;&lt;div&gt;created_at (DATETIME)&lt;/div&gt;&lt;div&gt;&lt;br&gt;&lt;/div&gt;&lt;div&gt;&lt;br&gt;&lt;/div&gt;&lt;div&gt;&lt;br&gt;&lt;/div&gt;&lt;div&gt;&lt;br&gt;&lt;/div&gt;" vertex="1">
+      <mxGeometry height="150" width="220" x="410" y="-180" as="geometry" />
+    </mxCell>
+    <mxCell id="s_title" parent="1" style="text;html=1;strokeColor=default;fillColor=none;align=center;verticalAlign=middle;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;fontSize=13;fontStyle=1;rounded=1;" value="Sortiitem" vertex="1">
+      <mxGeometry height="30" width="200" x="80" y="330" as="geometry" />
+    </mxCell>
+    <mxCell id="s_id" parent="1" style="text;html=1;strokeColor=default;fillColor=none;align=left;verticalAlign=middle;spacingLeft=10;overflow=hidden;rotatable=0;fontSize=12;" value="PK  id (INT)&lt;div&gt;&lt;span style=&quot;font-style: italic;&quot;&gt;FK user_id (INT)&lt;/span&gt;&lt;/div&gt;&lt;div&gt;created_at (DATETIME)&lt;/div&gt;" vertex="1">
+      <mxGeometry height="55" width="200" x="80" y="360" as="geometry" />
+    </mxCell>
+    <mxCell id="si_title" parent="1" style="text;html=1;strokeColor=default;fillColor=none;align=center;verticalAlign=middle;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;fontSize=13;fontStyle=1;rounded=1;" value="ScheduleItem" vertex="1">
+      <mxGeometry height="30" width="220" x="390" y="330" as="geometry" />
+    </mxCell>
+    <mxCell id="si_id" parent="1" style="text;html=1;strokeColor=default;fillColor=none;align=left;verticalAlign=middle;spacingLeft=10;overflow=hidden;rotatable=0;fontSize=12;" value="PK  id (INT)&lt;div&gt;&lt;span style=&quot;font-style: italic;&quot;&gt;FK schedule_id (INT)&lt;/span&gt;&lt;/div&gt;&lt;div&gt;&lt;span style=&quot;font-style: italic;&quot;&gt;FK task_id (INT)&lt;/span&gt;&lt;/div&gt;&lt;div&gt;score (FLOAT)&lt;/div&gt;&lt;div&gt;quadrant (ENUM)&lt;/div&gt;&lt;div&gt;item_order (INT)&lt;/div&gt;&lt;div&gt;&lt;br&gt;&lt;/div&gt;&lt;div&gt;&lt;br&gt;&lt;/div&gt;&lt;div&gt;&lt;br&gt;&lt;/div&gt;&lt;div&gt;&lt;br&gt;&lt;/div&gt;&lt;div&gt;&lt;br&gt;&lt;/div&gt;" vertex="1">
+      <mxGeometry height="100" width="220" x="390" y="360" as="geometry" />
+    </mxCell>
+    <mxCell id="th_title" parent="1" style="text;html=1;strokeColor=default;fillColor=none;align=center;verticalAlign=middle;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;fontSize=13;fontStyle=1;rounded=1;" value="TaskHistory" vertex="1">
+      <mxGeometry height="30" width="220" x="850" y="70" as="geometry" />
+    </mxCell>
+    <mxCell id="th_id" parent="1" style="text;html=1;strokeColor=default;fillColor=none;align=left;verticalAlign=middle;spacingLeft=10;overflow=hidden;rotatable=0;fontSize=12;" value="PK  id (INT)&lt;div&gt;&lt;span style=&quot;font-style: italic;&quot;&gt;FK user_id (INT)&lt;/span&gt;&lt;/div&gt;&lt;div&gt;&lt;span style=&quot;font-style: italic;&quot;&gt;FK task_id (INT)&lt;/span&gt;&lt;span style=&quot;font-style: italic;&quot;&gt;&lt;/span&gt;&lt;/div&gt;&lt;div&gt;old_status (ENUM)&lt;span style=&quot;font-style: italic;&quot;&gt;&lt;/span&gt;&lt;/div&gt;&lt;div&gt;new_status (ENUM)&lt;span style=&quot;font-style: italic;&quot;&gt;&lt;/span&gt;&lt;/div&gt;&lt;div&gt;changed_at (DATETIME)&lt;span style=&quot;font-style: italic;&quot;&gt;&lt;/span&gt;&lt;/div&gt;&lt;div&gt;note (TEXT)&lt;span style=&quot;font-style: italic;&quot;&gt;&lt;/span&gt;&lt;/div&gt;&lt;div&gt;&lt;span style=&quot;font-style: italic;&quot;&gt;&lt;br&gt;&lt;/span&gt;&lt;/div&gt;&lt;div&gt;&lt;span style=&quot;font-style: italic;&quot;&gt;&lt;br&gt;&lt;/span&gt;&lt;/div&gt;&lt;div&gt;&lt;span style=&quot;font-style: italic;&quot;&gt;&lt;br&gt;&lt;/span&gt;&lt;/div&gt;" vertex="1">
+      <mxGeometry height="120" width="220" x="850" y="100" as="geometry" />
+    </mxCell>
+    <mxCell id="r1" edge="1" parent="1" source="u_title" style="endArrow=ERmany;startArrow=ERone;html=1;strokeColor=light-dark(#6C8EBF,#FFFFFF);exitX=1;exitY=0.5;entryX=0;entryY=0.25;edgeStyle=orthogonalEdgeStyle;exitDx=0;exitDy=0;entryDx=0;entryDy=0;" target="t_title" value="">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+    <mxCell id="r2" edge="1" parent="1" source="u_title" style="endArrow=ERmany;startArrow=ERone;html=1;strokeColor=light-dark(#D6B656,#FFFFFF);exitX=0;exitY=0.5;entryX=0;entryY=0.25;edgeStyle=orthogonalEdgeStyle;entryDx=0;entryDy=0;exitDx=0;exitDy=0;" target="s_id" value="">
+      <mxGeometry relative="1" as="geometry">
+        <Array as="points">
+          <mxPoint x="40" y="-195" />
+          <mxPoint x="40" y="374" />
+        </Array>
+      </mxGeometry>
+    </mxCell>
+    <mxCell id="r3" edge="1" parent="1" source="u_id" style="endArrow=ERmany;startArrow=ERone;html=1;strokeColor=light-dark(#B85450,#FFFFFF);exitX=1;exitY=0.5;edgeStyle=orthogonalEdgeStyle;entryX=0;entryY=0.75;entryDx=0;entryDy=0;" target="th_title" value="">
+      <mxGeometry relative="1" x="-0.3571" y="70" as="geometry">
+        <mxPoint as="offset" />
+        <Array as="points">
+          <mxPoint x="360" y="-120" />
+          <mxPoint x="360" y="93" />
+        </Array>
+        <mxPoint x="830" y="92" as="targetPoint" />
+      </mxGeometry>
+    </mxCell>
+    <mxCell id="r4" edge="1" parent="1" source="t_title" style="endArrow=ERmany;startArrow=ERmany;html=1;strokeColor=light-dark(#9673A6,#FFFFFF);entryX=1;entryY=0.5;entryDx=0;entryDy=0;edgeStyle=orthogonalEdgeStyle;exitX=1;exitY=0.25;exitDx=0;exitDy=0;startFill=0;" target="si_title" value="">
+      <mxGeometry relative="1" as="geometry">
+        <Array as="points">
+          <mxPoint x="630" y="-195" />
+          <mxPoint x="790" y="-195" />
+          <mxPoint x="790" y="345" />
+        </Array>
+        <mxPoint x="937" y="-142.5" as="sourcePoint" />
+        <mxPoint x="640" y="505" as="targetPoint" />
+      </mxGeometry>
+    </mxCell>
+    <mxCell id="r5" edge="1" parent="1" source="s_title" style="endArrow=ERmany;startArrow=ERone;html=1;strokeColor=light-dark(#B85450,#FFFFFF);exitX=0.5;exitY=0;entryX=0.003;entryY=0.403;edgeStyle=orthogonalEdgeStyle;entryDx=0;entryDy=0;entryPerimeter=0;exitDx=0;exitDy=0;" target="th_id" value="">
+      <mxGeometry relative="1" as="geometry">
+        <Array as="points">
+          <mxPoint x="180" y="150" />
+          <mxPoint x="820" y="150" />
+          <mxPoint x="820" y="148" />
+        </Array>
+      </mxGeometry>
+    </mxCell>
+    <mxCell id="r6" edge="1" parent="1" source="s_id" style="endArrow=ERmany;startArrow=ERone;html=1;strokeColor=light-dark(#9673A6,#FFFFFF);exitX=1;exitY=0.5;entryX=0;entryY=0.25;edgeStyle=orthogonalEdgeStyle;entryDx=0;entryDy=0;" target="si_title" value="">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+    <mxCell id="lWyRYYGCXHbuxD6Y2X9M-1" connectable="0" parent="1" style="group" value="" vertex="1">
+      <mxGeometry height="150" width="200" x="100" y="-210" as="geometry" />
+    </mxCell>
+    <mxCell id="u_title" parent="lWyRYYGCXHbuxD6Y2X9M-1" style="text;html=1;strokeColor=light-dark(#6C8EBF,#FFFFFF);fillColor=none;align=center;verticalAlign=middle;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;fontSize=13;fontStyle=1;rounded=1;" value="User" vertex="1">
+      <mxGeometry height="30" width="200" as="geometry" />
+    </mxCell>
+    <mxCell id="u_id" parent="lWyRYYGCXHbuxD6Y2X9M-1" style="text;html=1;strokeColor=light-dark(#6C8EBF,#FFFFFF);fillColor=none;align=left;verticalAlign=middle;spacingLeft=10;overflow=hidden;rotatable=0;fontSize=12;" value="PK  id (INT)&lt;div&gt;email(VARCHAR)&lt;/div&gt;&lt;div&gt;avatar(VARCHAR)&lt;/div&gt;&lt;div&gt;name(VARCHAR)&lt;/div&gt;&lt;div&gt;created_at(DATETIME)&lt;/div&gt;" vertex="1">
+      <mxGeometry height="120" width="200" y="30" as="geometry" />
+    </mxCell>
+  </root>
+</mxGraphModel>
+

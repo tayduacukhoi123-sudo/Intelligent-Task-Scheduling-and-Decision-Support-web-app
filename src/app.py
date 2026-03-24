@@ -3,14 +3,13 @@ from extensions import db, migrate
 from models import User, Task, Schedule
 from routes import bp
 
-def createApp(configOverride=None):
+import os
+
+def create_app(config_override=None):
     app = Flask(__name__)
-    app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///database.db"
-    app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
-    app.config["SECRET_KEY"] = "iDJJRdEj5PpL7FZWbiJh9Lcgb5tzet6k-5H987TXGnIiwD1lWy017E8W5uhWhFvau-lzSeIjfn"
-    
-    if configOverride:
-        app.config.update(configOverride)
+    app.config.from_prefixed_env()
+    app.config.setdefault("SQLALCHEMY_DATABASE_URI", os.getenv("DATABASE_URL", "sqlite:///database.db"))
+    app.config.setdefault("SQLALCHEMY_TRACK_MODIFICATIONS", False)
     
     db.init_app(app)
     migrate.init_app(app, db)
@@ -23,5 +22,5 @@ def createApp(configOverride=None):
     return app
 
 if __name__ == "__main__":
-    app = createApp()
+    app = create_app()
     app.run(debug=True)

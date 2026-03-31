@@ -3,14 +3,23 @@ from extensions import db
 
 class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    username = db.Column(db.String(80), unique=True, nullable=False)
-    task = db.relationship("Task", backref="user", lazy=True)
+    email = db.Column(db.String(255), unique=True, nullable=False)
+    name = db.Column(db.String(255), nullable=False)
+    tasks = db.relationship("Task", backref="user", lazy=True)
 
 class Task(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     title = db.Column(db.Text, nullable=False)
     user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
-    schedules = db.relationship("Schedule", backref="task", lazy=True)
+    
+    urgency = db.Column(db.Integer, nullable=False, default=1)
+    importance = db.Column(db.Integer, nullable=False, default=1)
+    severity = db.Column(db.Integer, nullable=False, default=1)
+    deadline = db.Column(db.String(50), nullable=False) # Store YYYY-MM-DD as string for simplicity, or Date
+    status = db.Column(db.String(20), nullable=False, default='active')
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    schedules = db.relationship("Schedule", backref="task", lazy=True, cascade="all, delete-orphan")
 
 class Schedule(db.Model):
     id = db.Column(db.Integer, primary_key=True)

@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Task Priority Manager | Sign In</title>
+    <link rel="stylesheet" href="/static/styles.css">
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <style>
+        body {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            background: linear-gradient(135deg, #0f172a, #020617);
+        }
+
+        .login-card {
+            max-width: 420px;
+            width: 100%;
+            padding: 3rem 2.5rem;
+            text-align: center;
+        }
+
+        .login-brand {
+            font-size: 2rem;
+            font-weight: 700;
+            color: white;
+            margin-bottom: 0.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.6rem;
+            background: linear-gradient(to right, #6366f1, #a855f7);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .login-brand i {
+            color: #6366f1;
+            -webkit-text-fill-color: initial;
+            font-size: 2rem;
+        }
+
+        .login-subtitle {
+            color: var(--text-muted);
+            margin-bottom: 2.5rem;
+            font-size: 0.95rem;
+        }
+
+        .divider {
+            border: none;
+            border-top: 1px solid var(--glass-border);
+            margin: 2rem 0;
+        }
+
+        #g_id_signin {
+            display: flex;
+            justify-content: center;
+        }
+
+        .error-msg {
+            color: #fca5a5;
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid rgba(239, 68, 68, 0.2);
+            border-radius: 0.5rem;
+            padding: 0.75rem 1rem;
+            font-size: 0.85rem;
+            margin-top: 1rem;
+            display: none;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="glass-card login-card animate-in">
+        <div class="login-brand">
+            <i class="ph-fill ph-check-circle"></i> TaskMaster
+        </div>
+        <p class="login-subtitle">Intelligent Task Scheduling &amp; Decision Support</p>
+
+        <hr class="divider">
+
+        <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 1.5rem;">
+            Sign in with your Google account to manage your tasks.
+        </p>
+
+        <!-- Google Identity Services button -->
+        <div id="g_id_onload" data-client_id="280175750348-ok368mrnpn75i9rimpc2lbvls85n448i.apps.googleusercontent.com"
+            data-callback="handleGoogleSignIn" data-auto_prompt="false">
+        </div>
+        <div class="g_id_signin" data-type="standard" data-size="large" data-theme="filled_black"
+            data-text="sign_in_with" data-shape="rectangular" data-logo_alignment="left">
+        </div>
+
+        <div class="error-msg" id="errorMsg">
+            <i class="ph ph-warning-circle"></i> Sign-in failed. Please try again.
+        </div>
+
+        <p style="color: var(--text-muted); font-size: 0.78rem; margin-top: 2rem;">
+            Your data is stored securely and only visible to you.
+        </p>
+    </div>
+
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+    <script>
+        // If already logged in, redirect straight to dashboard
+        if (localStorage.getItem('user_id')) {
+            window.location.href = '/';
+        }
+
+        async function handleGoogleSignIn(response) {
+            try {
+                const res = await fetch('/api/auth/google', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ credential: response.credential })
+                });
+                if (!res.ok) throw new Error('Auth failed');
+
+                const data = await res.json();
+                localStorage.setItem('user_id', data.user_id);
+                localStorage.setItem('user_name', data.name);
+                localStorage.setItem('user_email', data.email);
+                window.location.href = '/';
+            } catch (err) {
+                document.getElementById('errorMsg').style.display = 'block';
+            }
+        }
+    </script>
+</body>
+
+</html>

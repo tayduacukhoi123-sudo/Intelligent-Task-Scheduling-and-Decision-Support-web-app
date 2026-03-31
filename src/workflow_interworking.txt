@@ -1,0 +1,65 @@
+INTELLIGENT TASK SCHEDULING WEB APP - WORKFLOW & INTERWORKING
+============================================================
+
+1. HIGH-LEVEL ARCHITECTURE
+--------------------------
+The web application follows a traditional "Client-Server" model with three main layers:
+
+- FRONTEND: Pure HTML/CSS for the UI and Vanilla JavaScript for interactivity and API communication.
+- BACKEND: Python with the Flask web framework, handling API requests, business logic, and session-less authentication.
+- DATABASE: SQLite (via SQLAlchemy ORM), storing User profiles and their persistent Tasks.
+
+2. USER AUTHENTICATION FLOW (GOOGLE OAUTH 2.0)
+---------------------------------------------
+The app uses "Sign-In with Google" for secure, decentralized authentication.
+
+- STEP 1 (Frontend): User clicks the Google Sign-In button on 'login.html'.
+- STEP 2 (Frontend): The Google Identity Service returns a JWT (JSON Web Token) "credential" to the frontend.
+- STEP 3 (API): The frontend POSTs this credential to '/api/auth/google'.
+- STEP 4 (Backend): The server verifies the token with Google's servers.
+- STEP 5 (Backend): If valid, the system finds or creates the User in the local DB and returns a 'user_id'.
+- STEP 6 (Frontend): The 'user_id' is stored in 'localStorage'. Every future page load checks for this ID; if it's missing, the user is redirected to the login page.
+
+3. TASK MANAGEMENT WORKFLOW
+---------------------------
+Adding a Task:
+- The user enters a title, select urgency/importance/severity (1-10), and a deadline.
+- Upon submission, the frontend calls 'POST /api/tasks' with the parameters and 'user_id'.
+- The backend creates a persistent Task record in the database.
+
+Viewing Tasks (Dashboard / Matrix Schedule):
+- Upon loading, the frontend requests 'GET /api/tasks?user_id=...'.
+- The backend returns a JSON list of all active tasks for that user.
+- The frontend then applies the PRIORITY ALGORITHM (see below) to dynamically calculate each task's score for the current day.
+- Tasks are categorized into Eisenhower Matrix quadrants:
+    - Urgent & Important (Do First)
+    - Not Urgent & Important (Schedule)
+    - Urgent & Not Important (Delegate)
+    - Not Urgent & Not Important (Eliminate)
+
+Completing a Task:
+- User clicks "Complete". The frontend calls 'PATCH /api/tasks/<id>' with { "status": "completed" }.
+- The task is removed from the active view and moved to the 'History' tab.
+
+4. THE PRIORITY ALGORITHM (MATHEMATICAL INTERWORKING)
+-----------------------------------------------------
+The core "intelligence" of the app is the weighted scoring formula that re-evaluates task priority every single day based on how close the deadline is.
+
+Formula:
+  Score = (W_U * Urgency + W_I * Importance + W_S * Severity) * (1 + ALPHA / (Days_Remaining + 1))
+
+Constants:
+- ALPHA = 2 (The "Deadline Decay" factor)
+- W_U = 0.3 (Weight for Urgency)
+- W_I = 0.4 (Weight for Importance)
+- W_S = 0.3 (Weight for Severity)
+
+As a deadline approaches (Days_Remaining decreases), the multiplier (1 + ALPHA / (Days_Remaining + 1)) increases exponentially, pushing the task to the top of the priority list.
+
+5. DATA PERSISTENCE
+------------------
+All data matches the following schema:
+- USERS: id, email, name.
+- TASKS: id, user_id, title, urgency, importance, severity, deadline, status, created_at.
+
+Because the scoring logic depends on "today's date," the system does not store a final "priority score" in the DB. Instead, it re-calculates the score on every page load to ensure the "Top Tasks" are always accurate to the current moment.

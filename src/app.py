@@ -1,4 +1,5 @@
 from flask import Flask
+from flask_cors import CORS
 from extensions import db, migrate
 from models import User, Task, Schedule
 from routes import bp
@@ -11,6 +12,7 @@ def create_app(config_override=None):
     app.config.setdefault("SQLALCHEMY_DATABASE_URI", os.getenv("DATABASE_URL", "sqlite:///database.db"))
     app.config.setdefault("SQLALCHEMY_TRACK_MODIFICATIONS", False)
     
+    CORS(app)
     db.init_app(app)
     migrate.init_app(app, db)
     

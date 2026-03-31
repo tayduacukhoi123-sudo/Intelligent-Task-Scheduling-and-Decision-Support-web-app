@@ -1,1 +1,46 @@
+<mxGraphModel dx="1042" dy="642" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1654" pageHeight="2336" math="0" shadow="0">
+  <root>
+    <mxCell id="lkT1qIR_xtsQ5UZmMvPP-0" />
+    <mxCell id="lkT1qIR_xtsQ5UZmMvPP-1" parent="lkT1qIR_xtsQ5UZmMvPP-0" />
+    <mxCell id="SoALNTMdrlyPKRC-5kG6-0" parent="lkT1qIR_xtsQ5UZmMvPP-1" style="text;html=1;strokeColor=default;fillColor=none;align=center;verticalAlign=middle;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;fontSize=13;fontStyle=1;rounded=1;" value="User" vertex="1">
+      <mxGeometry height="30" width="200" x="520" y="150" as="geometry" />
+    </mxCell>
+    <mxCell id="SoALNTMdrlyPKRC-5kG6-1" parent="lkT1qIR_xtsQ5UZmMvPP-1" style="text;html=1;strokeColor=default;fillColor=none;align=left;verticalAlign=middle;spacingLeft=10;overflow=hidden;rotatable=0;fontSize=12;" value="PK  id (INT)&lt;div&gt;email (VARCHAR)&lt;/div&gt;&lt;div&gt;name (VARCHAR)&lt;/div&gt;&lt;div&gt;avatar (VARCHAR)&lt;/div&gt;&lt;div&gt;created_at (DATETIME)&lt;/div&gt;&lt;div&gt;password_hash (VARCHAR)&lt;/div&gt;&lt;div&gt;auth_provider (ENUM)&lt;/div&gt;" vertex="1">
+      <mxGeometry height="120" width="200" x="520" y="180" as="geometry" />
+    </mxCell>
+    <mxCell id="SoALNTMdrlyPKRC-5kG6-6" parent="lkT1qIR_xtsQ5UZmMvPP-1" style="text;html=1;strokeColor=default;fillColor=none;align=center;verticalAlign=middle;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;fontSize=13;fontStyle=1;rounded=1;" value="Task" vertex="1">
+      <mxGeometry height="30" width="220" x="820" y="150" as="geometry" />
+    </mxCell>
+    <mxCell id="SoALNTMdrlyPKRC-5kG6-7" parent="lkT1qIR_xtsQ5UZmMvPP-1" style="text;html=1;strokeColor=default;fillColor=none;align=left;verticalAlign=middle;spacingLeft=10;overflow=hidden;rotatable=0;fontSize=12;" value="PK  id (INT)&lt;div&gt;&lt;span style=&quot;font-style: italic;&quot;&gt;FK user_id (INT)&lt;/span&gt;&lt;/div&gt;&lt;div&gt;&lt;div&gt;&lt;span style=&quot;font-style: italic;&quot;&gt;FK task_id (INT)&lt;/span&gt;&lt;/div&gt;&lt;/div&gt;&lt;div&gt;title (VARCHAR)&lt;/div&gt;&lt;div&gt;urgency (INT 1–5)&lt;/div&gt;&lt;div&gt;importance (INT 1–5)&lt;/div&gt;&lt;div&gt;estimated_time (INT)&lt;/div&gt;&lt;div&gt;flexibility (BOOLEAN)&lt;/div&gt;&lt;div&gt;created_at (DATETIME)&lt;/div&gt;&lt;div&gt;&lt;div&gt;score (FLOAT)&lt;/div&gt;&lt;/div&gt;&lt;div&gt;&lt;div&gt;quadrant (ENUM)&lt;/div&gt;&lt;/div&gt;&lt;div&gt;&lt;br&gt;&lt;/div&gt;&lt;div&gt;&lt;br&gt;&lt;/div&gt;&lt;div&gt;&lt;br&gt;&lt;/div&gt;&lt;div&gt;&lt;br&gt;&lt;/div&gt;&lt;div&gt;&lt;br&gt;&lt;/div&gt;" vertex="1">
+      <mxGeometry height="170" width="220" x="820" y="180" as="geometry" />
+    </mxCell>
+    <mxCell id="SoALNTMdrlyPKRC-5kG6-27" parent="lkT1qIR_xtsQ5UZmMvPP-1" style="text;html=1;strokeColor=default;fillColor=none;align=center;verticalAlign=middle;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;fontSize=13;fontStyle=1;rounded=1;" value="schedule&lt;div&gt;&lt;br&gt;&lt;/div&gt;" vertex="1">
+      <mxGeometry height="30" width="220" x="1230" y="150" as="geometry" />
+    </mxCell>
+    <mxCell id="SoALNTMdrlyPKRC-5kG6-28" parent="lkT1qIR_xtsQ5UZmMvPP-1" style="text;html=1;strokeColor=default;fillColor=none;align=left;verticalAlign=middle;spacingLeft=10;overflow=hidden;rotatable=0;fontSize=12;" value="PK  id (INT)&lt;div&gt;&lt;span style=&quot;font-style: italic;&quot;&gt;FK task_id (INT)&lt;/span&gt;&lt;/div&gt;&lt;div&gt;&lt;span style=&quot;font-style: italic;&quot;&gt;FK user_id (INT)&lt;/span&gt;&lt;/div&gt;&lt;div&gt;old_status (ENUM)&lt;/div&gt;&lt;div&gt;new_status (ENUM)&lt;/div&gt;&lt;div&gt;changed_at (DATETIME)&lt;/div&gt;&lt;div&gt;note (TEXT)&lt;/div&gt;&lt;div&gt;&lt;div&gt;created_at (DATETIME)&lt;/div&gt;&lt;div&gt;item_oder&lt;/div&gt;&lt;div&gt;&lt;/div&gt;&lt;/div&gt;" vertex="1">
+      <mxGeometry height="140" width="220" x="1230" y="180" as="geometry" />
+    </mxCell>
+    <mxCell id="SoALNTMdrlyPKRC-5kG6-35" edge="1" parent="lkT1qIR_xtsQ5UZmMvPP-1" source="SoALNTMdrlyPKRC-5kG6-1" style="endArrow=ERmany;startArrow=ERone;html=1;strokeColor=default;exitX=1;exitY=0.5;entryX=0;entryY=0.5;edgeStyle=orthogonalEdgeStyle;entryDx=0;entryDy=0;" target="SoALNTMdrlyPKRC-5kG6-6" value="">
+      <mxGeometry relative="1" x="-0.4286" y="-42" as="geometry">
+        <mxPoint x="-12" y="30" as="offset" />
+      </mxGeometry>
+    </mxCell>
+    <mxCell id="SoALNTMdrlyPKRC-5kG6-37" edge="1" parent="lkT1qIR_xtsQ5UZmMvPP-1" source="SoALNTMdrlyPKRC-5kG6-1" style="endArrow=ERmany;startArrow=ERone;html=1;strokeColor=default;exitX=0.5;exitY=1;edgeStyle=orthogonalEdgeStyle;exitDx=0;exitDy=0;entryX=0.538;entryY=1.01;entryDx=0;entryDy=0;entryPerimeter=0;" target="SoALNTMdrlyPKRC-5kG6-28" value="">
+      <mxGeometry relative="1" x="0.0155" y="-50" as="geometry">
+        <mxPoint as="offset" />
+        <Array as="points">
+          <mxPoint x="620" y="430" />
+          <mxPoint x="1350" y="430" />
+          <mxPoint x="1350" y="321" />
+        </Array>
+        <mxPoint x="1350" y="330" as="targetPoint" />
+      </mxGeometry>
+    </mxCell>
+    <mxCell id="SoALNTMdrlyPKRC-5kG6-39" edge="1" parent="lkT1qIR_xtsQ5UZmMvPP-1" source="SoALNTMdrlyPKRC-5kG6-7" style="endArrow=ERmany;startArrow=ERone;html=1;strokeColor=default;exitX=1;exitY=0.5;entryX=0;entryY=0.5;edgeStyle=orthogonalEdgeStyle;entryDx=0;entryDy=0;" target="SoALNTMdrlyPKRC-5kG6-27" value="">
+      <mxGeometry relative="1" x="-0.193" y="-55" as="geometry">
+        <mxPoint as="offset" />
+      </mxGeometry>
+    </mxCell>
+  </root>
+</mxGraphModel>
 

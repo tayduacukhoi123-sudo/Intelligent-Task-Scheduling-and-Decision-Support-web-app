@@ -40,7 +40,7 @@ FOREIGN KEY (task_id) REFERENCES Task(id) ON DELETE CASCADE
 
 CREATE TABLE TaskHistory (
 id          INT AUTO_INCREMENT PRIMARY KEY,
-task_id     INT NOT NULL,
+task_id     INT NOT NULL,x`x
 user_id     INT NOT NULL,
 old_status  ENUM('pending', 'done', 'late', 'cancelled'),
 new_status  ENUM('pending', 'done', 'late', 'cancelled') NOT NULL,

@@ -75,19 +75,80 @@ def get_tasks():
         })
     return jsonify(task_list), 200
 
+def validate_task_fields(data, is_create=False):
+    """Shared validation for create and update operations."""
+    errors = []
+
+    # Title validation
+    if is_create or "title" in data:
+        title = data.get("title", "").strip()
+        if not title:
+            errors.append("Task title is required.")
+        elif len(title) < 3:
+            errors.append("Task title must be at least 3 characters long.")
+        elif len(title) > 100:
+            errors.append("Task title must be at most 100 characters.")
+
+    # Score validations (urgency, importance, severity must be 1-10)
+    for field in ["urgency", "importance", "severity"]:
+        if is_create or field in data:
+            val = data.get(field)
+            try:
+                val = int(val)
+            except (TypeError, ValueError):
+                errors.append(f"{field.capitalize()} must be an integer.")
+                continue
+            if val < 1 or val > 10:
+                errors.append(f"{field.capitalize()} must be between 1 and 10.")
+
+    # Deadline validation
+    if is_create or "deadline" in data:
+        deadline = data.get("deadline", "")
+        if not deadline:
+            errors.append("Deadline is required.")
+        else:
+            try:
+                dt = datetime.strptime(deadline, "%Y-%m-%d")
+                # Block past dates ONLY on CREATE
+                if is_create:
+                    today = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
+                    if dt < today:
+                        errors.append("Deadline cannot be in the past.")
+                
+                # Block ridiculously far dates (e.g. > 10 years)
+                if dt.year > datetime.utcnow().year + 10:
+                    errors.append("Deadline is too far in the future.")
+            except ValueError:
+                errors.append("Deadline must be a valid date in YYYY-MM-DD format.")
+
+    return errors
+
 @bp.route("/api/tasks", methods=["POST"])
 def create_task():
     data = request.get_json()
+    if not data:
+        return jsonify({"error": "Request body is required."}), 400
+
     user_id = data.get("user_id")
     if not user_id:
-        return jsonify({"error": "user_id required"}), 400
+        return jsonify({"error": "user_id is required."}), 400
+
+    # Verify user exists
+    user = User.query.get(user_id)
+    if not user:
+        return jsonify({"error": "User not found."}), 404
+
+    # Validate fields
+    errors = validate_task_fields(data, is_create=True)
+    if errors:
+        return jsonify({"error": errors[0], "errors": errors}), 422
         
     task = Task(
-        title=data.get("title", ""),
+        title=data.get("title", "").strip(),
         user_id=user_id,
-        urgency=data.get("urgency", 1),
-        importance=data.get("importance", 1),
-        severity=data.get("severity", 1),
+        urgency=int(data.get("urgency", 1)),
+        importance=int(data.get("importance", 1)),
+        severity=int(data.get("severity", 1)),
         deadline=data.get("deadline", "")
     )
     db.session.add(task)
@@ -97,17 +158,27 @@ def create_task():
 @bp.route("/api/tasks/<int:task_id>", methods=["PATCH"])
 def update_task(task_id):
     data = request.get_json()
-    task = Task.query.get_or_404(task_id)
+    if not data:
+        return jsonify({"error": "Request body is required."}), 400
+
+    task = Task.query.get(task_id)
+    if not task:
+        return jsonify({"error": "Task not found."}), 404
     
+    # Validate fields
+    errors = validate_task_fields(data, is_create=False)
+    if errors:
+        return jsonify({"error": errors[0], "errors": errors}), 422
+
     # Update status
     if "status" in data:
         task.status = data["status"]
     
-    # Update other fields (Title, U, I, S, Deadline)
-    if "title" in data: task.title = data["title"]
-    if "urgency" in data: task.urgency = data["urgency"]
-    if "importance" in data: task.importance = data["importance"]
-    if "severity" in data: task.severity = data["severity"]
+    # Update other fields
+    if "title" in data: task.title = data["title"].strip()
+    if "urgency" in data: task.urgency = int(data["urgency"])
+    if "importance" in data: task.importance = int(data["importance"])
+    if "severity" in data: task.severity = int(data["severity"])
     if "deadline" in data: task.deadline = data["deadline"]
     
     db.session.commit()
@@ -115,7 +186,22 @@ def update_task(task_id):
 
 @bp.route("/api/tasks/<int:task_id>", methods=["DELETE"])
 def delete_task(task_id):
-    task = Task.query.get_or_404(task_id)
+    task = Task.query.get(task_id)
+    if not task:
+        return jsonify({"error": "Task not found."}), 404
     db.session.delete(task)
     db.session.commit()
     return jsonify({"message": "Task deleted successfully"}), 200
+
+@bp.route("/api/tasks/history", methods=["DELETE"])
+def clear_history():
+    user_id = request.args.get("user_id")
+    if not user_id:
+        return jsonify({"error": "user_id required"}), 400
+    
+    completed = Task.query.filter_by(user_id=user_id, status="completed").all()
+    count = len(completed)
+    for task in completed:
+        db.session.delete(task)
+    db.session.commit()
+    return jsonify({"message": f"Cleared {count} completed tasks"}), 200

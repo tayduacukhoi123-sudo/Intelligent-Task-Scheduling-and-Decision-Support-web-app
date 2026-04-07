@@ -3,18 +3,23 @@
 :root {
     --bg-dark: #0f172a;
     --bg-darker: #020617;
-    --bg-primary: #0f172a; /* alias used on login page */
+    --bg-primary: #0f172a;
+    /* alias used on login page */
     --text-main: #f8fafc;
     --text-muted: #94a3b8;
     --primary: #6366f1;
     --primary-hover: #4f46e5;
-    
+
     /* Quadrant Colors */
-    --q1-do: #ef4444; /* Urgent & Important */
-    --q2-schedule: #3b82f6; /* Not Urgent & Important */
-    --q3-delegate: #f59e0b; /* Urgent & Not Important */
-    --q4-eliminate: #64748b; /* Not Urgent & Not Important */
-    
+    --q1-do: #ef4444;
+    /* Urgent & Important */
+    --q2-schedule: #3b82f6;
+    /* Not Urgent & Important */
+    --q3-delegate: #f59e0b;
+    /* Urgent & Not Important */
+    --q4-eliminate: #64748b;
+    /* Not Urgent & Not Important */
+
     --glass-bg: rgba(255, 255, 255, 0.04);
     --glass-border: rgba(255, 255, 255, 0.1);
     --glass-highlight: rgba(255, 255, 255, 0.06);
@@ -138,7 +143,7 @@ body {
     border: 1px solid var(--glass-border);
     border-radius: 16px;
     padding: 1.5rem;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4), 0 2px 4px rgba(0,0,0,0.2);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4), 0 2px 4px rgba(0, 0, 0, 0.2);
     transition: transform 0.3s ease, box-shadow 0.3s ease;
 }
 
@@ -185,15 +190,41 @@ body {
 }
 
 /* Quadrant Styles */
-.q1-bg { background: rgba(239, 68, 68, 0.1); color: var(--q1-do); }
-.q2-bg { background: rgba(59, 130, 246, 0.1); color: var(--q2-schedule); }
-.q3-bg { background: rgba(245, 158, 11, 0.1); color: var(--q3-delegate); }
-.q4-bg { background: rgba(100, 116, 139, 0.1); color: var(--q4-eliminate); }
+.q1-bg {
+    background: rgba(239, 68, 68, 0.1);
+    color: var(--q1-do);
+}
 
-.q1-border { border-left: 4px solid var(--q1-do); }
-.q2-border { border-left: 4px solid var(--q2-schedule); }
-.q3-border { border-left: 4px solid var(--q3-delegate); }
-.q4-border { border-left: 4px solid var(--q4-eliminate); }
+.q2-bg {
+    background: rgba(59, 130, 246, 0.1);
+    color: var(--q2-schedule);
+}
+
+.q3-bg {
+    background: rgba(245, 158, 11, 0.1);
+    color: var(--q3-delegate);
+}
+
+.q4-bg {
+    background: rgba(100, 116, 139, 0.1);
+    color: var(--q4-eliminate);
+}
+
+.q1-border {
+    border-left: 4px solid var(--q1-do);
+}
+
+.q2-border {
+    border-left: 4px solid var(--q2-schedule);
+}
+
+.q3-border {
+    border-left: 4px solid var(--q3-delegate);
+}
+
+.q4-border {
+    border-left: 4px solid var(--q4-eliminate);
+}
 
 /* Forms & Inputs */
 .form-group {
@@ -331,8 +362,15 @@ body {
     font-size: 0.8rem;
 }
 
-.score-high { background: rgba(239, 68, 68, 0.2); color: #fca5a5; }
-.score-medium { background: rgba(59, 130, 246, 0.2); color: #93c5fd; }
+.score-high {
+    background: rgba(239, 68, 68, 0.2);
+    color: #fca5a5;
+}
+
+.score-medium {
+    background: rgba(59, 130, 246, 0.2);
+    color: #93c5fd;
+}
 
 /* Table Styles for History */
 .table-container {
@@ -373,34 +411,64 @@ body {
     letter-spacing: 0.05em;
 }
 
-.badge-success { background: rgba(16, 185, 129, 0.2); color: #6ee7b7; border: 1px solid rgba(16, 185, 129, 0.3); }
-.badge-pending { background: rgba(245, 158, 11, 0.2); color: #fcd34d; border: 1px solid rgba(245, 158, 11, 0.3); }
+.badge-success {
+    background: rgba(16, 185, 129, 0.2);
+    color: #6ee7b7;
+    border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+.badge-pending {
+    background: rgba(245, 158, 11, 0.2);
+    color: #fcd34d;
+    border: 1px solid rgba(245, 158, 11, 0.3);
+}
 
 /* Animation */
 @keyframes fadeIn {
-    from { opacity: 0; transform: translateY(10px); }
-    to { opacity: 1; transform: translateY(0); }
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
 .animate-in {
     animation: fadeIn 0.4s ease forwards;
 }
 
-.delay-1 { animation-delay: 0.1s; opacity: 0; }
-.delay-2 { animation-delay: 0.2s; opacity: 0; }
-.delay-3 { animation-delay: 0.3s; opacity: 0; }
+.delay-1 {
+    animation-delay: 0.1s;
+    opacity: 0;
+}
+
+.delay-2 {
+    animation-delay: 0.2s;
+    opacity: 0;
+}
+
+.delay-3 {
+    animation-delay: 0.3s;
+    opacity: 0;
+}
 
 ::-webkit-scrollbar {
     width: 8px;
     height: 8px;
 }
+
 ::-webkit-scrollbar-track {
-    background: rgba(0,0,0,0.1);
+    background: rgba(0, 0, 0, 0.1);
 }
+
 ::-webkit-scrollbar-thumb {
     background: var(--glass-border);
     border-radius: 4px;
 }
+
 ::-webkit-scrollbar-thumb:hover {
     background: var(--text-muted);
 }

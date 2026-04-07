@@ -39,7 +39,92 @@ function requireAuth() {
 }
 
 // ---------------------------------------------------------------------------
-// API calls
+// Toast Notification System
+// ---------------------------------------------------------------------------
+function showToast(type, title, message, duration = 4000) {
+    const container = document.getElementById('toastContainer');
+    if (!container) { alert(message); return; }
+
+    const icons = {
+        success: 'ph-fill ph-check-circle',
+        error: 'ph-fill ph-x-circle',
+        warning: 'ph-fill ph-warning'
+    };
+
+    const toast = document.createElement('div');
+    toast.className = `toast toast-${type}`;
+    toast.innerHTML = `
+        <i class="toast-icon ${icons[type] || icons.warning}"></i>
+        <div class="toast-body">
+            <div class="toast-title">${title}</div>
+            <div class="toast-message">${message}</div>
+        </div>
+        <button class="toast-close" onclick="this.parentElement.classList.add('toast-removing'); setTimeout(() => this.parentElement.remove(), 300)">
+            <i class="ph ph-x"></i>
+        </button>
+    `;
+    container.appendChild(toast);
+
+    setTimeout(() => {
+        if (toast.parentElement) {
+            toast.classList.add('toast-removing');
+            setTimeout(() => toast.remove(), 300);
+        }
+    }, duration);
+}
+
+// ---------------------------------------------------------------------------
+// Form Validation Helpers
+// ---------------------------------------------------------------------------
+function showFieldError(fieldId, errorId, msg) {
+    const field = document.getElementById(fieldId);
+    const errEl = document.getElementById(errorId);
+    if (field) field.classList.add('is-invalid');
+    if (errEl) {
+        errEl.querySelector('span').textContent = msg;
+        errEl.classList.add('visible');
+    }
+}
+
+function clearFieldError(fieldId, errorId) {
+    const field = document.getElementById(fieldId);
+    const errEl = document.getElementById(errorId);
+    if (field) field.classList.remove('is-invalid');
+    if (errEl) errEl.classList.remove('visible');
+}
+
+function clearAllFieldErrors() {
+    clearFieldError('taskName', 'taskNameError');
+    clearFieldError('taskDate', 'taskDateError');
+}
+
+function validateTaskForm() {
+    clearAllFieldErrors();
+    let valid = true;
+
+    const title = (document.getElementById('taskName')?.value || '').trim();
+    if (!title) {
+        showFieldError('taskName', 'taskNameError', 'Task name is required.');
+        valid = false;
+    } else if (title.length < 3) {
+        showFieldError('taskName', 'taskNameError', 'Task name must be at least 3 characters.');
+        valid = false;
+    } else if (title.length > 200) {
+        showFieldError('taskName', 'taskNameError', 'Task name must be at most 200 characters.');
+        valid = false;
+    }
+
+    const deadline = document.getElementById('taskDate')?.value || '';
+    if (!deadline) {
+        showFieldError('taskDate', 'taskDateError', 'Please select a deadline date.');
+        valid = false;
+    }
+
+    return valid;
+}
+
+// ---------------------------------------------------------------------------
+// API calls (with server error parsing)
 // ---------------------------------------------------------------------------
 async function fetchTasks() {
     const res = await fetch(`${API_BASE}/api/tasks?user_id=${getUserId()}`);
@@ -60,7 +145,10 @@ async function createTaskAPI(title, urgency, importance, severity, deadline) {
             deadline
         })
     });
-    if (!res.ok) throw new Error('Failed to create task');
+    if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData.error || 'Failed to create task');
+    }
     return res.json();
 }
 
@@ -70,7 +158,10 @@ async function updateTaskAPI(taskId, data) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data)
     });
-    if (!res.ok) throw new Error('Failed to update task');
+    if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData.error || 'Failed to update task');
+    }
     return res.json();
 }
 
@@ -89,6 +180,14 @@ async function patchTaskStatus(taskId, status) {
         body: JSON.stringify({ status })
     });
     if (!res.ok) throw new Error('Failed to update task');
+    return res.json();
+}
+
+async function clearHistoryAPI() {
+    const res = await fetch(`${API_BASE}/api/tasks/history?user_id=${getUserId()}`, {
+        method: 'DELETE'
+    });
+    if (!res.ok) throw new Error('Failed to clear history');
     return res.json();
 }
 
@@ -136,7 +235,7 @@ function taskItemHTML(t, showCompleteBtn = true) {
     const completeBtn = showCompleteBtn
         ? `<button onclick="markCompleted(${t.id})" class="badge badge-success" style="cursor:pointer; border:none; padding: 0.25rem 0.6rem;">Complete <i class="ph ph-check"></i></button>`
         : '';
-    
+
     return `
     <div class="task-item" style="${determineHighlightBorder(t.daysRemaining)} background: rgba(0,0,0,0.2);">
         <div class="task-info">
@@ -219,15 +318,22 @@ async function renderTaskPage() {
     // State for editing
     let editingTaskId = null;
 
-    // Form submission
+    // Form submission with frontend validation
     form.addEventListener('submit', async (e) => {
         e.preventDefault();
+
+        // Frontend validation first
+        if (!validateTaskForm()) {
+            showToast('warning', 'Validation Error', 'Please fix the highlighted fields before submitting.');
+            return;
+        }
+
         const btn = document.getElementById('submitBtn');
         btn.disabled = true;
         btn.innerHTML = '<i class="ph ph-spinner"></i> Saving…';
 
         const taskData = {
-            title: document.getElementById('taskName').value,
+            title: document.getElementById('taskName').value.trim(),
             urgency: document.getElementById('uSlider').value,
             importance: document.getElementById('iSlider').value,
             severity: document.getElementById('sSlider').value,
@@ -238,6 +344,7 @@ async function renderTaskPage() {
             if (editingTaskId) {
                 await updateTaskAPI(editingTaskId, taskData);
                 btn.innerHTML = '<i class="ph ph-check"></i> Updated!';
+                showToast('success', 'Task Updated', `"${taskData.title}" has been updated successfully.`);
             } else {
                 await createTaskAPI(
                     taskData.title,
@@ -247,41 +354,24 @@ async function renderTaskPage() {
                     taskData.deadline
                 );
                 btn.innerHTML = '<i class="ph ph-check"></i> Added!';
+                showToast('success', 'Task Created', `"${taskData.title}" has been added to your list.`);
             }
-            setTimeout(() => window.location.reload(), 600);
+            setTimeout(() => window.location.reload(), 1200);
         } catch (err) {
             btn.disabled = false;
             btn.innerHTML = '<i class="ph ph-magic-wand"></i> Calculate &amp; Add Task';
-            alert('Failed to save task: ' + err.message);
+            showToast('error', 'Save Failed', err.message);
         }
     });
 
-    // Handle Edit Task Action
+    // Handle Edit Task Action (on task page, load into form)
     window.editTask = async (taskId) => {
-        try {
-            const tasks = await fetchTasks();
-            const task = tasks.find(t => t.id === taskId);
-            if (!task) return;
-
-            editingTaskId = taskId;
-            document.getElementById('taskName').value = task.title;
-            document.getElementById('uSlider').value = task.urgency;
-            document.getElementById('urgencyVal').innerText = task.urgency;
-            document.getElementById('iSlider').value = task.importance;
-            document.getElementById('importanceVal').innerText = task.importance;
-            document.getElementById('sSlider').value = task.severity;
-            document.getElementById('severityVal').innerText = task.severity;
-            document.getElementById('taskDate').value = task.deadline;
-
-            const btn = document.getElementById('submitBtn');
-            btn.innerHTML = '<i class="ph ph-pencil-simple"></i> Update Task';
-            
-            const cancelBtn = document.getElementById('cancelEditBtn');
-            if (cancelBtn) cancelBtn.style.display = 'inline-block';
-            
-            document.querySelector('.container-main').scrollTo({ top: 0, behavior: 'smooth' });
-        } catch (err) {
-            alert('Error loading task for edit: ' + err.message);
+        if (window.location.pathname.includes('task.html')) {
+            clearAllFieldErrors();
+            await loadTaskForEdit(taskId);
+            showToast('warning', 'Editing Task', 'Modify the fields above and click Update Task.');
+        } else {
+            window.location.href = `/task.html?edit=${taskId}`;
         }
     };
 
@@ -289,9 +379,10 @@ async function renderTaskPage() {
         if (!confirm('Are you sure you want to delete this task?')) return;
         try {
             await deleteTaskAPI(taskId);
-            window.location.reload();
+            showToast('success', 'Task Deleted', 'The task has been permanently removed.');
+            setTimeout(() => window.location.reload(), 800);
         } catch (err) {
-            alert('Error deleting task: ' + err.message);
+            showToast('error', 'Delete Failed', err.message);
         }
     };
 
@@ -362,10 +453,14 @@ async function renderSchedule() {
                 <div class="task-item">
                     <div class="task-info">
                         <div class="task-name">${t.title}</div>
-                        <div class="task-meta">Score: ${t.currentScore}</div>
+                        <div class="task-meta">Score: ${t.currentScore} &nbsp;|&nbsp; U:${t.urgency} I:${t.importance} S:${t.severity}</div>
                     </div>
                     <div style="display:flex; flex-direction:column; align-items:flex-end; gap:0.5rem;">
-                        ${badgeHtml}
+                        <div style="display:flex; align-items:center; gap:0.75rem;">
+                            <span onclick="editTask(${t.id})" title="Edit" style="cursor:pointer; opacity:0.6; transition:opacity 0.2s;" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=0.6"><i class="ph ph-pencil-simple"></i></span>
+                            <span onclick="deleteTask(${t.id})" title="Delete" style="cursor:pointer; opacity:0.6; color:var(--q1-do); transition:opacity 0.2s;" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=0.6"><i class="ph ph-trash"></i></span>
+                            ${badgeHtml}
+                        </div>
                         <button onclick="markCompleted(${t.id})" class="badge badge-success" style="cursor:pointer; border:none; padding: 0.25rem 0.6rem;">Complete <i class="ph ph-check"></i></button>
                     </div>
                 </div>`;
@@ -411,9 +506,24 @@ async function renderHistory() {
 async function markCompleted(taskId) {
     try {
         await patchTaskStatus(taskId, 'completed');
-        window.location.reload();
+        showToast('success', 'Task Completed', 'Task moved to history.');
+        setTimeout(() => window.location.reload(), 1000);
     } catch (err) {
-        alert('Failed to complete task: ' + err.message);
+        showToast('error', 'Status Update Failed', err.message);
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Action: clear all completed task history
+// ---------------------------------------------------------------------------
+async function clearHistoryAll() {
+    if (!confirm('Are you sure you want to permanently delete all completed tasks from history?')) return;
+    try {
+        const res = await clearHistoryAPI();
+        showToast('success', 'History Cleared', res.message);
+        setTimeout(() => window.location.reload(), 1200);
+    } catch (err) {
+        showToast('error', 'Clear History Failed', err.message);
     }
 }
 

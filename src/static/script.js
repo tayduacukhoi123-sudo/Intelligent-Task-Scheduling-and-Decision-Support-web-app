@@ -304,6 +304,7 @@ function recalculateActiveScores(tasks) {
             const res = calculatePriorityScore(t.urgency, t.importance, t.severity, t.deadline);
             t.currentScore = res.score;
             t.daysRemaining = res.daysRemaining;
+            t.totalHours = res.totalHours;
         }
     });
     return tasks;

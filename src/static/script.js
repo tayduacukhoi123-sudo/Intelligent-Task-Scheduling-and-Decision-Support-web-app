@@ -273,10 +273,16 @@ async function clearHistoryAPI() {
 // Priority calculation (client-side, used for display only)
 // ---------------------------------------------------------------------------
 function calculatePriorityScore(u, i, s, deadlineStr) {
+    if (!deadlineStr) return { score: 0, daysRemaining: 0, totalHours: 0 };
+
     const now = new Date();
     // Support both YYYY-MM-DD and YYYY-MM-DDTHH:MM
     const deadline = new Date(deadlineStr.includes('T') ? deadlineStr : deadlineStr + 'T00:00:00');
     
+    if (isNaN(deadline.getTime())) {
+        return { score: 0, daysRemaining: 0, totalHours: 0 };
+    }
+
     const diffTime = deadline - now;
     const hoursRemaining = diffTime / (1000 * 60 * 60);
     const daysRemaining = hoursRemaining / 24;
@@ -369,7 +375,9 @@ async function renderDashboard() {
                     <div class="task-name">${t.title}</div>
                     <div class="task-meta">
                         <span>${formatDeadline(t.deadline)}</span>
-                        <span style="color:${t.daysRemaining < 0 ? 'var(--q1-do)' : 'inherit'}">${t.daysRemaining < 0 ? 'Overdue!' : (t.daysRemaining <= 1 ? (Math.max(0, Math.floor(t.totalHours)) + ' hours left') : (t.daysRemaining + ' days left'))}</span>
+                        <span style="color:${t.daysRemaining < 0 ? 'var(--q1-do)' : 'inherit'}">
+                            ${t.daysRemaining < 0 ? 'Overdue!' : (isNaN(t.totalHours) ? 'Invalid Date' : (Math.max(0, Math.floor(t.totalHours)) + ' hours left'))}
+                        </span>
                     </div>
                 </div>
                 <div style="display:flex; flex-direction:column; align-items:flex-end; gap:0.5rem;">
@@ -545,7 +553,13 @@ async function renderSchedule() {
                 <div class="task-item">
                     <div class="task-info">
                         <div class="task-name">${t.title}</div>
-                        <div class="task-meta">${new Date(t.deadline).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} &nbsp;|&nbsp; Score: ${t.currentScore}</div>
+                        <div class="task-meta">
+                            ${new Date(t.deadline).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} &nbsp;|&nbsp; Score: ${t.currentScore}
+                            <br>
+                            <span style="font-size: 0.75rem;">
+                                ${isNaN(t.totalHours) ? 'Invalid Date' : (t.daysRemaining < 0 ? 'Overdue!' : (t.daysRemaining <= 1 ? (Math.max(0, Math.floor(t.totalHours)) + ' hours left') : (t.daysRemaining + ' days left')))}
+                            </span>
+                        </div>
                     </div>
                     <div style="display:flex; flex-direction:column; align-items:flex-end; gap:0.5rem;">
                         <div style="display:flex; align-items:center; gap:0.75rem;">

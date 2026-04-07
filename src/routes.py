@@ -75,6 +75,21 @@ def get_tasks():
         })
     return jsonify(task_list), 200
 
+@bp.route("/api/tasks/<int:task_id>", methods=["GET"])
+def get_task(task_id):
+    task = Task.query.get(task_id)
+    if not task:
+        return jsonify({"error": "Task not found."}), 404
+    return jsonify({
+        "id": task.id,
+        "title": task.title,
+        "urgency": task.urgency,
+        "importance": task.importance,
+        "severity": task.severity,
+        "deadline": task.deadline,
+        "status": task.status
+    }), 200
+
 def validate_task_fields(data, is_create=False):
     """Shared validation for create and update operations."""
     errors = []

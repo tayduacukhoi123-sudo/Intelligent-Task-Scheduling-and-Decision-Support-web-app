@@ -251,6 +251,12 @@ async function deleteTaskAPI(taskId) {
     return res.json();
 }
 
+async function fetchTask(taskId) {
+    const res = await fetch(`${API_BASE}/api/tasks/${taskId}`);
+    if (!res.ok) throw new Error('Failed to fetch task details');
+    return res.json();
+}
+
 async function patchTaskStatus(taskId, status) {
     const res = await fetch(`${API_BASE}/api/tasks/${taskId}`, {
         method: 'PATCH',
@@ -350,6 +356,52 @@ function taskItemHTML(t, showCompleteBtn = true) {
 }
 
 // ---------------------------------------------------------------------------
+// Action: Load task into form for editing
+// ---------------------------------------------------------------------------
+let editingTaskId = null;
+
+async function loadTaskForEdit(taskId) {
+    try {
+        const t = await fetchTask(taskId);
+        editingTaskId = taskId;
+        
+        const form = document.getElementById('addTaskForm');
+        if (!form) return;
+
+        document.getElementById('taskName').value = t.title;
+        document.getElementById('uSlider').value = t.urgency;
+        document.getElementById('urgencyVal').innerText = t.urgency;
+        document.getElementById('iSlider').value = t.importance;
+        document.getElementById('importanceVal').innerText = t.importance;
+        document.getElementById('sSlider').value = t.severity;
+        document.getElementById('severityVal').innerText = t.severity;
+        document.getElementById('taskDate').value = t.deadline;
+
+        const btn = document.getElementById('submitBtn');
+        btn.innerHTML = '<i class="ph ph-check"></i> Update Task';
+        
+        const cancelBtn = document.getElementById('cancelEditBtn');
+        if (cancelBtn) cancelBtn.style.display = 'block';
+
+        // Scroll to form
+        form.scrollIntoView({ behavior: 'smooth' });
+    } catch (err) {
+        showToast('error', 'Load Failed', err.message);
+    }
+}
+
+// Global Edit Handler
+window.editTask = async (taskId) => {
+    if (window.location.pathname.includes('task.html')) {
+        clearAllFieldErrors();
+        await loadTaskForEdit(taskId);
+        showToast('warning', 'Editing Task', 'Modify the fields above and click Update Task.');
+    } else {
+        window.location.href = `/task.html?edit=${taskId}`;
+    }
+};
+
+// ---------------------------------------------------------------------------
 // Page renderers
 // ---------------------------------------------------------------------------
 async function renderDashboard() {
@@ -410,9 +462,6 @@ async function renderTaskPage() {
         if (el) el.addEventListener('input', e => document.getElementById(valId).innerText = e.target.value);
     });
 
-    // State for editing
-    let editingTaskId = null;
-
     // Form submission with frontend validation
     form.addEventListener('submit', async (e) => {
         e.preventDefault();
@@ -451,7 +500,9 @@ async function renderTaskPage() {
                 btn.innerHTML = '<i class="ph ph-check"></i> Added!';
                 showToast('success', 'Task Created', `"${taskData.title}" has been added to your list.`);
             }
-            setTimeout(() => window.location.reload(), 1200);
+            // Clear editing state on success
+            editingTaskId = null;
+            setTimeout(() => window.location.href = '/task.html', 1200);
         } catch (err) {
             btn.disabled = false;
             btn.innerHTML = '<i class="ph ph-magic-wand"></i> Calculate &amp; Add Task';
@@ -459,16 +510,28 @@ async function renderTaskPage() {
         }
     });
 
-    // Handle Edit Task Action (on task page, load into form)
-    window.editTask = async (taskId) => {
-        if (window.location.pathname.includes('task.html')) {
-            clearAllFieldErrors();
-            await loadTaskForEdit(taskId);
-            showToast('warning', 'Editing Task', 'Modify the fields above and click Update Task.');
-        } else {
-            window.location.href = `/task.html?edit=${taskId}`;
-        }
-    };
+    // Check if we are in edit mode from URL params
+    const urlParams = new URLSearchParams(window.location.search);
+    const editId = urlParams.get('edit');
+    if (editId) {
+        await loadTaskForEdit(editId);
+    }
+
+    const cancelEditBtn = document.getElementById('cancelEditBtn');
+    if (cancelEditBtn) {
+        cancelEditBtn.addEventListener('click', () => {
+            editingTaskId = null;
+            form.reset();
+            document.getElementById('urgencyVal').innerText = '5';
+            document.getElementById('importanceVal').innerText = '5';
+            document.getElementById('severityVal').innerText = '5';
+            const btn = document.getElementById('submitBtn');
+            btn.innerHTML = '<i class="ph ph-magic-wand"></i> Calculate &amp; Add Task';
+            cancelEditBtn.style.display = 'none';
+            // Also clean up URL if possible without reload (optional)
+            window.history.replaceState({}, document.title, window.location.pathname);
+        });
+    }
 
     window.deleteTask = async (taskId) => {
         const confirmed = await showConfirmModal('Delete Task?', 'Are you sure you want to permanently remove this task? This action cannot be undone.');
@@ -482,20 +545,6 @@ async function renderTaskPage() {
             showToast('error', 'Delete Failed', err.message);
         }
     };
-
-    const cancelEditBtn = document.getElementById('cancelEditBtn');
-    if (cancelEditBtn) {
-        cancelEditBtn.addEventListener('click', () => {
-            editingTaskId = null;
-            form.reset();
-            document.getElementById('urgencyVal').innerText = '5';
-            document.getElementById('importanceVal').innerText = '5';
-            document.getElementById('severityVal').innerText = '5';
-            const btn = document.getElementById('submitBtn');
-            btn.innerHTML = '<i class="ph ph-magic-wand"></i> Calculate &amp; Add Task';
-            cancelEditBtn.style.display = 'none';
-        });
-    }
 
     // Render active task list
     const listContainer = document.getElementById('activeTasksContainer');

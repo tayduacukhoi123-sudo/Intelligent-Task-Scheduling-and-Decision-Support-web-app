@@ -1,0 +1,18 @@
+services:
+  - type: web
+    name: task-priority-manager
+    runtime: python
+    buildCommand: "pip install -r requirements.txt"
+    startCommand: "gunicorn app:app"
+    rootDir: src
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: task-db
+          property: connectionString
+      - key: PYTHON_VERSION
+        value: 3.10.0
+
+databases:
+  - name: task-db
+    plan: free

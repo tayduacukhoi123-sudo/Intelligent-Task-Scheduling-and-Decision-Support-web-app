@@ -9,7 +9,11 @@ import os
 def create_app(config_override=None):
     app = Flask(__name__)
     app.config.from_prefixed_env()
-    app.config.setdefault("SQLALCHEMY_DATABASE_URI", os.getenv("DATABASE_URL", "sqlite:///database.db"))
+    database_url = os.getenv("DATABASE_URL", "sqlite:///database.db")
+    if database_url.startswith("postgres://"):
+        database_url = database_url.replace("postgres://", "postgresql://", 1)
+        
+    app.config.setdefault("SQLALCHEMY_DATABASE_URI", database_url)
     app.config.setdefault("SQLALCHEMY_TRACK_MODIFICATIONS", False)
     
     CORS(app)

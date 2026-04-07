@@ -4,3 +4,4 @@ Flask-Migrate
 Flask-Cors
 google-auth
 python-dotenv
+gunicorn

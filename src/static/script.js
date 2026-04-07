@@ -90,6 +90,21 @@ function formatDeadline(deadlineStr) {
     return date.toLocaleDateString('en-US', options);
 }
 
+// Helper to format deadline for datetime-local input (YYYY-MM-DDTHH:MM)
+function formatDateForInput(deadlineStr) {
+    if (!deadlineStr) return '';
+    const date = new Date(deadlineStr);
+    if (isNaN(date.getTime())) return '';
+    
+    const pad = (num) => String(num).padStart(2, '0');
+    const y = date.getFullYear();
+    const m = pad(date.getMonth() + 1);
+    const d = pad(date.getDate());
+    const hh = pad(date.getHours());
+    const mm = pad(date.getMinutes());
+    return `${y}-${m}-${d}T${hh}:${mm}`;
+}
+
 // ---------------------------------------------------------------------------
 // Form Validation Helpers
 // ---------------------------------------------------------------------------
@@ -375,7 +390,7 @@ async function loadTaskForEdit(taskId) {
         document.getElementById('importanceVal').innerText = t.importance;
         document.getElementById('sSlider').value = t.severity;
         document.getElementById('severityVal').innerText = t.severity;
-        document.getElementById('taskDate').value = t.deadline;
+        document.getElementById('taskDate').value = formatDateForInput(t.deadline);
 
         const btn = document.getElementById('submitBtn');
         btn.innerHTML = '<i class="ph ph-check"></i> Update Task';
@@ -533,18 +548,6 @@ async function renderTaskPage() {
         });
     }
 
-    window.deleteTask = async (taskId) => {
-        const confirmed = await showConfirmModal('Delete Task?', 'Are you sure you want to permanently remove this task? This action cannot be undone.');
-        if (!confirmed) return;
-        
-        try {
-            await deleteTaskAPI(taskId);
-            showToast('success', 'Task Deleted', 'The task has been permanently removed.');
-            setTimeout(() => window.location.reload(), 800);
-        } catch (err) {
-            showToast('error', 'Delete Failed', err.message);
-        }
-    };
 
     // Render active task list
     const listContainer = document.getElementById('activeTasksContainer');
@@ -684,6 +687,23 @@ async function clearHistoryAll() {
         showToast('error', 'Clear History Failed', err.message);
     }
 }
+
+// ---------------------------------------------------------------------------
+// Action: delete task (Global handler)
+// ---------------------------------------------------------------------------
+async function deleteTask(taskId) {
+    const confirmed = await showConfirmModal('Delete Task?', 'Are you sure you want to permanently remove this task? This action cannot be undone.');
+    if (!confirmed) return;
+    
+    try {
+        await deleteTaskAPI(taskId);
+        showToast('success', 'Task Deleted', 'The task has been permanently removed.');
+        setTimeout(() => window.location.reload(), 800);
+    } catch (err) {
+        showToast('error', 'Delete Failed', err.message);
+    }
+}
+window.deleteTask = deleteTask;
 
 // ---------------------------------------------------------------------------
 // Global initialization

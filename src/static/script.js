@@ -140,6 +140,57 @@ function validateTaskForm() {
     return valid;
 }
 
+/**
+ * Premium Confirmation Modal (Custom UI Replacement for confirm())
+ * @param {string} title 
+ * @param {string} message 
+ * @returns {Promise<boolean>}
+ */
+function showConfirmModal(title, message) {
+    return new Promise((resolve) => {
+        // Create modal if it doesn't exist
+        let overlay = document.getElementById('confirmModal');
+        if (!overlay) {
+            overlay = document.createElement('div');
+            overlay.id = 'confirmModal';
+            overlay.className = 'modal-overlay';
+            overlay.innerHTML = `
+                <div class="modal-content">
+                    <div class="modal-icon"><i class="ph ph-trash"></i></div>
+                    <h3 class="modal-title" id="modalTitle"></h3>
+                    <p class="modal-message" id="modalMessage"></p>
+                    <div class="modal-actions">
+                        <button class="modal-btn btn-cancel" id="modalCancel">Cancel</button>
+                        <button class="modal-btn btn-confirm-delete" id="modalConfirm">Delete</button>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(overlay);
+        }
+
+        const titleEl = document.getElementById('modalTitle');
+        const msgEl = document.getElementById('modalMessage');
+        const cancelBtn = document.getElementById('modalCancel');
+        const confirmBtn = document.getElementById('modalConfirm');
+
+        titleEl.innerText = title;
+        msgEl.innerText = message;
+
+        const cleanup = (result) => {
+            overlay.classList.remove('active');
+            cancelBtn.onclick = null;
+            confirmBtn.onclick = null;
+            setTimeout(() => resolve(result), 300);
+        };
+
+        cancelBtn.onclick = () => cleanup(false);
+        confirmBtn.onclick = () => cleanup(true);
+
+        // Show with small delay for animation
+        setTimeout(() => overlay.classList.add('active'), 10);
+    });
+}
+
 // Ensure the date/time picker opens on click
 document.addEventListener('DOMContentLoaded', () => {
     const taskDate = document.getElementById('taskDate');
@@ -411,7 +462,9 @@ async function renderTaskPage() {
     };
 
     window.deleteTask = async (taskId) => {
-        if (!confirm('Are you sure you want to delete this task?')) return;
+        const confirmed = await showConfirmModal('Delete Task?', 'Are you sure you want to permanently remove this task? This action cannot be undone.');
+        if (!confirmed) return;
+        
         try {
             await deleteTaskAPI(taskId);
             showToast('success', 'Task Deleted', 'The task has been permanently removed.');
@@ -556,7 +609,9 @@ async function markCompleted(taskId) {
 // Action: clear all completed task history
 // ---------------------------------------------------------------------------
 async function clearHistoryAll() {
-    if (!confirm('Are you sure you want to permanently delete all completed tasks from history?')) return;
+    const confirmed = await showConfirmModal('Clear All History?', 'Warning: This will permanently delete ALL completed tasks. Are you sure?');
+    if (!confirmed) return;
+    
     try {
         const res = await clearHistoryAPI();
         showToast('success', 'History Cleared', res.message);

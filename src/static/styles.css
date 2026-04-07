@@ -572,3 +572,15 @@ body {
     transform: translateX(40px) !important;
     transition: all 0.3s ease !important;
 }
+
+/* Fix for invisible date/time picker icons in dark mode */
+::-webkit-calendar-picker-indicator {
+    filter: invert(1) brightness(1.5);
+    cursor: pointer;
+    opacity: 0.6;
+    transition: opacity 0.2s;
+}
+
+::-webkit-calendar-picker-indicator:hover {
+    opacity: 1;
+}

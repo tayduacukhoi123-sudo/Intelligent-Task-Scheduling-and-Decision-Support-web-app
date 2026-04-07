@@ -140,6 +140,16 @@ function validateTaskForm() {
     return valid;
 }
 
+// Ensure the date/time picker opens on click
+document.addEventListener('DOMContentLoaded', () => {
+    const taskDate = document.getElementById('taskDate');
+    if (taskDate) {
+        taskDate.addEventListener('click', function() {
+            try { if (this.showPicker) this.showPicker(); } catch (e) { console.warn('showPicker not supported'); }
+        });
+    }
+});
+
 // ---------------------------------------------------------------------------
 // API calls (with server error parsing)
 // ---------------------------------------------------------------------------

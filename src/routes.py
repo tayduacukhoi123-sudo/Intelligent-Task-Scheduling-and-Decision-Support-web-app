@@ -108,18 +108,24 @@ def validate_task_fields(data, is_create=False):
             errors.append("Deadline is required.")
         else:
             try:
-                dt = datetime.strptime(deadline, "%Y-%m-%d")
+                # Support both YYYY-MM-DD and YYYY-MM-DDTHH:MM formats
+                try:
+                    dt = datetime.strptime(deadline, "%Y-%m-%dT%H:%M")
+                except ValueError:
+                    dt = datetime.strptime(deadline, "%Y-%m-%d")
+                
                 # Block past dates ONLY on CREATE
                 if is_create:
-                    today = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
-                    if dt < today:
+                    # Use minute-level precision for datetime-local
+                    now = datetime.utcnow()
+                    if dt < now:
                         errors.append("Deadline cannot be in the past.")
                 
                 # Block ridiculously far dates (e.g. > 10 years)
                 if dt.year > datetime.utcnow().year + 10:
                     errors.append("Deadline is too far in the future.")
             except ValueError:
-                errors.append("Deadline must be a valid date in YYYY-MM-DD format.")
+                errors.append("Deadline must be a valid date in YYYY-MM-DD or YYYY-MM-DDTHH:MM format.")
 
     return errors
 

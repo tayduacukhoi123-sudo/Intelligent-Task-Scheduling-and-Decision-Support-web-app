@@ -73,6 +73,23 @@ function showToast(type, title, message, duration = 4000) {
     }, duration);
 }
 
+// Helper to format deadline for display
+function formatDeadline(deadlineStr) {
+    if (!deadlineStr) return 'N/A';
+    // If it's the old YYYY-MM-DD format, or the new YYYY-MM-DDTHH:MM
+    const date = new Date(deadlineStr);
+    if (isNaN(date.getTime())) return deadlineStr;
+
+    const options = { 
+        month: 'short', 
+        day: 'numeric', 
+        hour: '2-digit', 
+        minute: '2-digit',
+        hour12: true 
+    };
+    return date.toLocaleDateString('en-US', options);
+}
+
 // ---------------------------------------------------------------------------
 // Form Validation Helpers
 // ---------------------------------------------------------------------------
@@ -195,15 +212,23 @@ async function clearHistoryAPI() {
 // Priority calculation (client-side, used for display only)
 // ---------------------------------------------------------------------------
 function calculatePriorityScore(u, i, s, deadlineStr) {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const deadline = new Date(deadlineStr + 'T00:00:00'); // Force local midnight
-    const diffTime = deadline - today;
-    const daysRemaining = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    const now = new Date();
+    // Support both YYYY-MM-DD and YYYY-MM-DDTHH:MM
+    const deadline = new Date(deadlineStr.includes('T') ? deadlineStr : deadlineStr + 'T00:00:00');
+    
+    const diffTime = deadline - now;
+    const hoursRemaining = diffTime / (1000 * 60 * 60);
+    const daysRemaining = hoursRemaining / 24;
+    
     const clampedDays = Math.max(0, daysRemaining);
     const baseScore = (W_U * u) + (W_I * i) + (W_S * s);
     const multiplier = 1 + (ALPHA / (clampedDays + 1));
-    return { score: parseFloat((baseScore * multiplier).toFixed(2)), daysRemaining };
+    
+    return { 
+        score: parseFloat((baseScore * multiplier).toFixed(2)), 
+        daysRemaining: Math.ceil(daysRemaining),
+        totalHours: hoursRemaining
+    };
 }
 
 function recalculateActiveScores(tasks) {
@@ -241,7 +266,7 @@ function taskItemHTML(t, showCompleteBtn = true) {
         <div class="task-info">
             <div class="task-name">${t.title}</div>
             <div class="task-meta">
-                <span><i class="ph ph-calendar-blank"></i> Deadline: ${t.deadline}</span>
+                <span><i class="ph ph-calendar-blank"></i> ${formatDeadline(t.deadline)}</span>
                 <span>U:${t.urgency} | I:${t.importance} | S:${t.severity}</span>
             </div>
         </div>
@@ -282,8 +307,8 @@ async function renderDashboard() {
                 <div class="task-info">
                     <div class="task-name">${t.title}</div>
                     <div class="task-meta">
-                        <span>Deadline: ${t.deadline}</span>
-                        <span style="color:${t.daysRemaining < 0 ? 'var(--q1-do)' : 'inherit'}">${t.daysRemaining < 0 ? 'Overdue!' : (t.daysRemaining + ' days left')}</span>
+                        <span>${formatDeadline(t.deadline)}</span>
+                        <span style="color:${t.daysRemaining < 0 ? 'var(--q1-do)' : 'inherit'}">${t.daysRemaining < 0 ? 'Overdue!' : (t.daysRemaining <= 1 ? (Math.max(0, Math.floor(t.totalHours)) + ' hours left') : (t.daysRemaining + ' days left'))}</span>
                     </div>
                 </div>
                 <div style="display:flex; flex-direction:column; align-items:flex-end; gap:0.5rem;">
@@ -436,16 +461,20 @@ async function renderSchedule() {
 
         let html = '';
         for (const [date, grpTasks] of Object.entries(groups)) {
+            // Group by date (ignoring time for the header)
+            const displayDate = new Date(date).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
             html += `
             <div class="glass-card quadrant" style="margin-bottom: 1.5rem; border-top-width:4px; border-top-color:var(--primary)">
                 <div class="quadrant-header">
-                    <div class="quadrant-title"><i class="ph-fill ph-calendar"></i> ${date}</div>
+                    <div class="quadrant-title"><i class="ph-fill ph-calendar"></i> ${displayDate}</div>
                     <span class="badge" style="background:rgba(255,255,255,0.1);">${grpTasks.length} Tasks</span>
                 </div>`;
 
-            grpTasks.sort((a, b) => b.currentScore - a.currentScore).forEach(t => {
+            // Sort within the day by priority, then by precise time
+            grpTasks.sort((a, b) => b.currentScore - a.currentScore || (new Date(a.deadline) - new Date(b.deadline))).forEach(t => {
                 let badgeHtml = '';
                 if (t.daysRemaining < 0) badgeHtml = `<span class="badge" style="background:rgba(239,68,68,0.2); color:#fca5a5;">OVERDUE</span>`;
+                else if (t.daysRemaining <= 0) badgeHtml = `<span class="badge" style="background:rgba(239,68,68,0.1); color:#fca5a5;">DUE SOON</span>`;
                 else if (t.daysRemaining <= 2) badgeHtml = `<span class="badge" style="background:rgba(245,158,11,0.2); color:#fcd34d;">NEAR DEADLINE</span>`;
                 else badgeHtml = `<span class="badge" style="background:rgba(100,116,139,0.2); color:#cbd5e1;">UPCOMING</span>`;
 
@@ -453,7 +482,7 @@ async function renderSchedule() {
                 <div class="task-item">
                     <div class="task-info">
                         <div class="task-name">${t.title}</div>
-                        <div class="task-meta">Score: ${t.currentScore} &nbsp;|&nbsp; U:${t.urgency} I:${t.importance} S:${t.severity}</div>
+                        <div class="task-meta">${new Date(t.deadline).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} &nbsp;|&nbsp; Score: ${t.currentScore}</div>
                     </div>
                     <div style="display:flex; flex-direction:column; align-items:flex-end; gap:0.5rem;">
                         <div style="display:flex; align-items:center; gap:0.75rem;">
@@ -489,7 +518,7 @@ async function renderHistory() {
             const res = calculatePriorityScore(t.urgency, t.importance, t.severity, t.deadline);
             return `
             <tr>
-                <td>${t.deadline}</td>
+                <td>${formatDeadline(t.deadline)}</td>
                 <td style="font-weight: 500; color: white;">${t.title}</td>
                 <td><span class="task-score score-medium">${res.score} pts</span></td>
                 <td><span class="badge badge-success">Completed</span></td>

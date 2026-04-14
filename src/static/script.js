@@ -705,13 +705,22 @@ async function initQuickAdd() {
     const card = document.getElementById('verificationCard');
 
     if (!box || !input || !btn) return;
+    if (btn.dataset.initDone) return; // Prevent double listeners
+    btn.dataset.initDone = 'true';
+
+    // Support Enter key for parsing
+    input.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            btn.click();
+        }
+    });
 
     btn.addEventListener('click', async () => {
         const text = input.value.trim();
         if (!text) return;
 
         // UI Loading State
-            // UI Loading State
         box.classList.add('shimmer', 'loading-state');
         btn.disabled = true;
         btn.innerHTML = '<span>Parsing...</span> <i class="ph ph-spinner"></i>';

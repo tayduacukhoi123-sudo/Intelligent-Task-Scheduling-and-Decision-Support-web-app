@@ -724,7 +724,8 @@ async function initQuickAdd() {
                     title: t.title,
                     start_time: t.deadline,
                     duration_minutes: t.duration_minutes,
-                    priority: t.priority
+                    urgency: t.urgency,
+                    importance: t.importance
                 }));
 
             const res = await fetch(`${API_BASE}/api/parse-task`, {

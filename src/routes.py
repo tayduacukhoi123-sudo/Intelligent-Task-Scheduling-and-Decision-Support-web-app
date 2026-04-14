@@ -65,9 +65,7 @@ def parse_task():
     if not client:
         return jsonify({"error": "Gemini API key not configured"}), 500
     
-    data = request.get_json()
-    text = data.get("text")
-    data = request.get_json()
+    data = request.get_json() or {}
     text = data.get("text", "")
     existing_tasks = data.get("existing_tasks", [])
     
@@ -80,7 +78,7 @@ def parse_task():
     tasks_context = ""
     if existing_tasks:
         tasks_context = "\nExisting Tasks for Context:\n" + "\n".join([
-            f"- {t['title']} from {t['start_time']} for {t['duration_minutes']} mins (Priority: {t['priority']})"
+            f"- {t['title']} from {t['start_time']} for {t['duration_minutes']} mins (Urgency: {t.get('urgency')}, Importance: {t.get('importance')})"
             for t in existing_tasks
         ])
 

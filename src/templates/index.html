@@ -47,6 +47,46 @@
             </a>
         </header>
 
+        <div class="quick-add-container animate-in delay-1">
+            <div class="quick-add-box" id="quickAddBox">
+                <i class="ph ph-magic-wand" style="color: var(--primary); font-size: 1.25rem;"></i>
+                <input type="text" id="quickAddInput" class="quick-add-input" placeholder="Quick add task: 'Gym tomorrow at 5pm for an hour'...">
+                <button id="quickAddBtn" class="quick-add-btn">
+                    <span>Parse AI</span>
+                    <i class="ph ph-sparkle"></i>
+                </button>
+            </div>
+
+            <div class="verification-card glass-card" id="verificationCard">
+                <div class="verification-header">
+                    <span>AI Interpretation</span>
+                    <i class="ph-fill ph-check-circle" style="font-size: 1.5rem;"></i>
+                </div>
+                <div class="verification-details">
+                    <div>
+                        <div class="v-item-label">Task Name</div>
+                        <div class="v-item-value" id="vName" contenteditable="true">...</div>
+                    </div>
+                    <div>
+                        <div class="v-item-label">Scheduled Time</div>
+                        <div class="v-item-value" id="vTime" contenteditable="true">...</div>
+                    </div>
+                    <div>
+                        <div class="v-item-label">Duration (mins)</div>
+                        <div class="v-item-value" id="vDuration" contenteditable="true">...</div>
+                    </div>
+                    <div>
+                        <div class="v-item-label">Priority (1-3)</div>
+                        <div class="v-item-value" id="vPriority" contenteditable="true">...</div>
+                    </div>
+                </div>
+                <div class="verification-actions">
+                    <button class="btn btn-cancel" id="vCancel">Cancel</button>
+                    <button class="btn btn-primary" id="vConfirm">Confirm &amp; Add</button>
+                </div>
+            </div>
+        </div>
+
         <div class="stats-grid animate-in delay-1" style="grid-template-columns: repeat(3, 1fr);">
             <div class="glass-card stat-card">
                 <div class="stat-icon q2-bg"><i class="ph-fill ph-squares-four"></i></div>

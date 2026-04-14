@@ -1,13 +1,19 @@
 import os
+import json
 from flask import Blueprint, jsonify, request, render_template
 from models import db, User, Task, Schedule
 from datetime import datetime
 from google.oauth2 import id_token
 from google.auth.transport import requests as google_requests
+from google import genai
+from google.genai import types
 
 bp = Blueprint("main", __name__)
 
 GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID", "")
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
+
+client = genai.Client(api_key=GEMINI_API_KEY) if GEMINI_API_KEY else None
 
 # --- Frontend Routes ---
 @bp.route("/")
@@ -54,6 +60,77 @@ def auth_google():
     except ValueError:
         return jsonify({"error": "Invalid token"}), 401
 
+@bp.route("/api/parse-task", methods=["POST"])
+def parse_task():
+    if not client:
+        return jsonify({"error": "Gemini API key not configured"}), 500
+    
+    data = request.get_json()
+    text = data.get("text")
+    if not text:
+        return jsonify({"error": "Text is required"}), 400
+    
+    current_time = datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
+    
+    system_prompt = f"""
+    You are a high-performance task management AI. Your goal is to convert natural language into a strictly valid JSON task object.
+    
+    Current Time Context: {current_time}
+    
+    Output JSON Schema:
+    {{
+      "title": "Clear, actionable task title",
+      "start_time": "ISO8601 string (e.g., 2026-04-14T15:30:00). Resolve relative terms like 'tomorrow', 'next Mon', 'in 2 hours' using the Reference Time.",
+      "duration_minutes": "Estimated duration in minutes (integer). Default to 30 if unspecified but implied.",
+      "priority": "Integer 1-3 (1: Low/Delegate, 2: Medium/Schedule, 3: High/Do First)"
+    }}
+    
+    Rules for Parsing:
+    1. Title: Remove filler words like "I need to" or "Remind me to".
+    2. Start Time: If a date is mentioned without a time, default to 09:00:00 for that date. If no date is mentioned, assume TODAY.
+    3. Duration: If words like "for 1 hour" or "30 mins" appear, extract precisely.
+    4. Priority: 
+       - 3: Words like "urgent", "asap", "important", "now".
+       - 2: Standard tasks, "tomorrow", "next week".
+       - 1: Minor tasks, "whenever", "low priority".
+    
+    IMPORTANT: Return ONLY the raw JSON object. No markdown blocks, no triple backticks.
+    """
+    
+    try:
+        if not client:
+            # Enhanced mock for developer testing when key is missing
+            import datetime as dt
+            parsed = {
+                "title": text.title(),
+                "start_time": (datetime.now() + dt.timedelta(days=1)).replace(hour=9, minute=0, second=0).isoformat(),
+                "duration_minutes": 30,
+                "priority": 2
+            }
+            if "urgent" in text.lower() or "now" in text.lower():
+                parsed["priority"] = 3
+                parsed["start_time"] = datetime.now().isoformat()
+            return jsonify(parsed), 200
+
+        response = client.models.generate_content(
+            model="gemini-2.0-flash",
+            contents=text,
+            config=types.GenerateContentConfig(
+                system_instruction=system_prompt,
+                response_mime_type="application/json",
+            )
+        )
+        
+        # Robust parsing (strip backticks if the model ignores the instruction)
+        resp_text = response.text.strip()
+        if resp_text.startswith("```"):
+            resp_text = resp_text.split("\n", 1)[1].rsplit("\n", 1)[0]
+        
+        parsed = json.loads(resp_text)
+        return jsonify(parsed), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
 @bp.route("/api/tasks", methods=["GET"])
 def get_tasks():
     user_id = request.args.get("user_id")
@@ -70,6 +147,7 @@ def get_tasks():
             "importance": t.importance,
             "severity": t.severity,
             "deadline": t.deadline,
+            "duration_minutes": t.duration_minutes,
             "status": t.status,
             "createdAt": t.created_at.isoformat()
         })
@@ -142,6 +220,15 @@ def validate_task_fields(data, is_create=False):
             except ValueError:
                 errors.append("Deadline must be a valid date in YYYY-MM-DD or YYYY-MM-DDTHH:MM format.")
 
+    # Duration validation
+    if "duration_minutes" in data and data["duration_minutes"] is not None:
+        try:
+            dur = int(data["duration_minutes"])
+            if dur < 0:
+                errors.append("Duration cannot be negative.")
+        except (TypeError, ValueError):
+            errors.append("Duration must be an integer.")
+
     return errors
 
 @bp.route("/api/tasks", methods=["POST"])
@@ -170,7 +257,8 @@ def create_task():
         urgency=int(data.get("urgency", 1)),
         importance=int(data.get("importance", 1)),
         severity=int(data.get("severity", 1)),
-        deadline=data.get("deadline", "")
+        deadline=data.get("deadline", ""),
+        duration_minutes=data.get("duration_minutes")
     )
     db.session.add(task)
     db.session.commit()
@@ -201,6 +289,7 @@ def update_task(task_id):
     if "importance" in data: task.importance = int(data["importance"])
     if "severity" in data: task.severity = int(data["severity"])
     if "deadline" in data: task.deadline = data["deadline"]
+    if "duration_minutes" in data: task.duration_minutes = data["duration_minutes"]
     
     db.session.commit()
     return jsonify({"id": task.id, "status": task.status, "title": task.title}), 200

@@ -34,17 +34,62 @@
             </button>
         </div>
     </nav>
-    <main class="main-content">
+    <main class="main-content" style="max-width: 1400px;">
         <header class="page-header animate-in">
             <div>
-                <h1 class="page-title">Deadline Schedule</h1>
-                <p class="page-subtitle">Tasks grouped by deadline and sorted by Priority Score.</p>
+                <h1 class="page-title">Eisenhower Decision Matrix</h1>
+                <p class="page-subtitle">Strategize your tasks based on Urgency and Importance.</p>
             </div>
         </header>
 
-        <div id="scheduleContainer" class="animate-in delay-1"
-            style="display:flex; flex-direction:column; gap:1.5rem; max-width:800px;">
-            <p style="color:var(--text-muted)">Loading schedule…</p>
+        <div class="matrix-container animate-in delay-1" id="matrixContainer">
+            <!-- Q1: Urgent & Important -->
+            <div class="glass-card quadrant q1-border" id="q1">
+                <div class="quadrant-header">
+                    <div class="quadrant-title q1-bg" style="padding: 0.25rem 0.75rem; border-radius: 8px;">
+                        <i class="ph-fill ph-fire"></i> DO FIRST
+                    </div>
+                </div>
+                <div class="quadrant-content" id="q1-tasks">
+                    <!-- Tasks injected by JS -->
+                </div>
+            </div>
+
+            <!-- Q2: Not Urgent & Important -->
+            <div class="glass-card quadrant q2-border" id="q2">
+                <div class="quadrant-header">
+                    <div class="quadrant-title q2-bg" style="padding: 0.25rem 0.75rem; border-radius: 8px;">
+                        <i class="ph-fill ph-calendar-star"></i> SCHEDULE
+                    </div>
+                </div>
+                <div class="quadrant-content" id="q2-tasks">
+                    <!-- Tasks injected by JS -->
+                </div>
+            </div>
+
+            <!-- Q3: Urgent & Not Important -->
+            <div class="glass-card quadrant q3-border" id="q3">
+                <div class="quadrant-header">
+                    <div class="quadrant-title q3-bg" style="padding: 0.25rem 0.75rem; border-radius: 8px;">
+                        <i class="ph-fill ph-users-three"></i> DELEGATE
+                    </div>
+                </div>
+                <div class="quadrant-content" id="q3-tasks">
+                    <!-- Tasks injected by JS -->
+                </div>
+            </div>
+
+            <!-- Q4: Not Urgent & Not Important -->
+            <div class="glass-card quadrant q4-border" id="q4">
+                <div class="quadrant-header">
+                    <div class="quadrant-title q4-bg" style="padding: 0.25rem 0.75rem; border-radius: 8px;">
+                        <i class="ph-fill ph-trash"></i> ELIMINATE
+                    </div>
+                </div>
+                <div class="quadrant-content" id="q4-tasks">
+                    <!-- Tasks injected by JS -->
+                </div>
+            </div>
         </div>
     </main>
     <div class="toast-container" id="toastContainer"></div>

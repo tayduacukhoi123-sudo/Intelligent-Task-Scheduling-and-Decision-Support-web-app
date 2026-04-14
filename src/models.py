@@ -16,6 +16,7 @@ class Task(db.Model):
     importance = db.Column(db.Integer, nullable=False, default=1)
     severity = db.Column(db.Integer, nullable=False, default=1)
     deadline = db.Column(db.String(50), nullable=False) # Store YYYY-MM-DD as string for simplicity, or Date
+    duration_minutes = db.Column(db.Integer, nullable=True)
     status = db.Column(db.String(20), nullable=False, default='active')
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     

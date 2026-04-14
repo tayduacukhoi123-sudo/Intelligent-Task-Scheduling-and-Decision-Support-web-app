@@ -225,7 +225,7 @@ async function fetchTasks() {
     return res.json();
 }
 
-async function createTaskAPI(title, urgency, importance, severity, deadline) {
+async function createTaskAPI(title, urgency, importance, severity, deadline, duration_minutes = null) {
     const res = await fetch(`${API_BASE}/api/tasks`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -235,7 +235,8 @@ async function createTaskAPI(title, urgency, importance, severity, deadline) {
             urgency: parseInt(urgency),
             importance: parseInt(importance),
             severity: parseInt(severity),
-            deadline
+            deadline,
+            duration_minutes
         })
     });
     if (!res.ok) {
@@ -565,70 +566,57 @@ async function renderTaskPage() {
 }
 
 async function renderSchedule() {
-    const scheduleContainer = document.getElementById('scheduleContainer');
-    if (!scheduleContainer) return;
+    const matrixContainer = document.getElementById('matrixContainer');
+    if (!matrixContainer) return;
+
+    // Sub-containers in the matrix
+    const qContainers = {
+        q1: document.getElementById('q1-tasks'),
+        q2: document.getElementById('q2-tasks'),
+        q3: document.getElementById('q3-tasks'),
+        q4: document.getElementById('q4-tasks')
+    };
+
+    // Clear previous contents
+    Object.values(qContainers).forEach(c => { if (c) c.innerHTML = '<p class="loading-mini">Loading...</p>'; });
 
     try {
         let tasks = recalculateActiveScores(await fetchTasks()).filter(t => t.status === 'active');
-        tasks.sort((a, b) => new Date(a.deadline) - new Date(b.deadline));
+        
+        // Clear containers again for rendering
+        Object.values(qContainers).forEach(c => { if (c) c.innerHTML = ''; });
 
-        const groups = {};
-        tasks.forEach(t => {
-            if (!groups[t.deadline]) groups[t.deadline] = [];
-            groups[t.deadline].push(t);
-        });
-
-        if (Object.keys(groups).length === 0) {
-            scheduleContainer.innerHTML = '<p style="color:var(--text-muted)">No active tasks scheduled.</p>';
+        if (tasks.length === 0) {
+            Object.values(qContainers).forEach(c => { if (c) c.innerHTML = '<div style="color:var(--text-muted); font-size:0.8rem; padding:1rem; text-align:center;">No tasks</div>'; });
             return;
         }
 
-        let html = '';
-        for (const [date, grpTasks] of Object.entries(groups)) {
-            // Group by date (ignoring time for the header)
-            const displayDate = new Date(date).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
-            html += `
-            <div class="glass-card quadrant" style="margin-bottom: 1.5rem; border-top-width:4px; border-top-color:var(--primary)">
-                <div class="quadrant-header">
-                    <div class="quadrant-title"><i class="ph-fill ph-calendar"></i> ${displayDate}</div>
-                    <span class="badge" style="background:rgba(255,255,255,0.1);">${grpTasks.length} Tasks</span>
-                </div>`;
+        tasks.sort((a, b) => b.currentScore - a.currentScore);
 
-            // Sort within the day by priority, then by precise time
-            grpTasks.sort((a, b) => b.currentScore - a.currentScore || (new Date(a.deadline) - new Date(b.deadline))).forEach(t => {
-                let badgeHtml = '';
-                if (t.daysRemaining < 0) badgeHtml = `<span class="badge" style="background:rgba(239,68,68,0.2); color:#fca5a5;">OVERDUE</span>`;
-                else if (t.daysRemaining <= 0) badgeHtml = `<span class="badge" style="background:rgba(239,68,68,0.1); color:#fca5a5;">DUE SOON</span>`;
-                else if (t.daysRemaining <= 2) badgeHtml = `<span class="badge" style="background:rgba(245,158,11,0.2); color:#fcd34d;">NEAR DEADLINE</span>`;
-                else badgeHtml = `<span class="badge" style="background:rgba(100,116,139,0.2); color:#cbd5e1;">UPCOMING</span>`;
+        tasks.forEach(t => {
+            const isUrgent = t.urgency >= 6;
+            const isImportant = t.importance >= 6;
 
-                html += `
-                <div class="task-item">
-                    <div class="task-info">
-                        <div class="task-name">${t.title}</div>
-                        <div class="task-meta">
-                            ${new Date(t.deadline).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} &nbsp;|&nbsp; Score: ${t.currentScore}
-                            <br>
-                            <span style="font-size: 0.75rem;">
-                                ${isNaN(t.totalHours) ? 'Invalid Date' : (t.daysRemaining < 0 ? 'Overdue!' : (t.daysRemaining <= 1 ? (Math.max(0, Math.floor(t.totalHours)) + ' hours left') : (t.daysRemaining + ' days left')))}
-                            </span>
-                        </div>
-                    </div>
-                    <div style="display:flex; flex-direction:column; align-items:flex-end; gap:0.5rem;">
-                        <div style="display:flex; align-items:center; gap:0.75rem;">
-                            <span onclick="editTask(${t.id})" title="Edit" style="cursor:pointer; opacity:0.6; transition:opacity 0.2s;" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=0.6"><i class="ph ph-pencil-simple"></i></span>
-                            <span onclick="deleteTask(${t.id})" title="Delete" style="cursor:pointer; opacity:0.6; color:var(--q1-do); transition:opacity 0.2s;" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=0.6"><i class="ph ph-trash"></i></span>
-                            ${badgeHtml}
-                        </div>
-                        <button onclick="markCompleted(${t.id})" class="badge badge-success" style="cursor:pointer; border:none; padding: 0.25rem 0.6rem;">Complete <i class="ph ph-check"></i></button>
-                    </div>
-                </div>`;
-            });
-            html += `</div>`;
-        }
-        scheduleContainer.innerHTML = html;
+            let targetId = 'q4';
+            if (isUrgent && isImportant) targetId = 'q1';
+            else if (!isUrgent && isImportant) targetId = 'q2';
+            else if (isUrgent && !isImportant) targetId = 'q3';
+
+            const container = qContainers[targetId];
+            if (container) {
+                container.innerHTML += taskItemHTML(t);
+            }
+        });
+
+        // Add empty message if any quadrant is empty after processing
+        Object.keys(qContainers).forEach(id => {
+            if (qContainers[id] && qContainers[id].innerHTML === '') {
+                qContainers[id].innerHTML = '<div style="color:var(--text-muted); font-size:0.8rem; padding:1rem; text-align:center; border:1px dashed rgba(255,255,255,0.05); border-radius:8px;">Empty</div>';
+            }
+        });
+
     } catch (err) {
-        scheduleContainer.innerHTML = `<p style="color:#fca5a5"><i class="ph ph-warning-circle"></i> Could not load schedule: ${err.message}</p>`;
+        matrixContainer.innerHTML = `<p style="color:#fca5a5; padding:2rem;"><i class="ph ph-warning-circle"></i> Error: ${err.message}</p>`;
     }
 }
 
@@ -706,6 +694,113 @@ async function deleteTask(taskId) {
 window.deleteTask = deleteTask;
 
 // ---------------------------------------------------------------------------
+// AI Quick Add Logic
+// ---------------------------------------------------------------------------
+let currentParsedTask = null;
+
+async function initQuickAdd() {
+    const box = document.getElementById('quickAddBox');
+    const input = document.getElementById('quickAddInput');
+    const btn = document.getElementById('quickAddBtn');
+    const card = document.getElementById('verificationCard');
+
+    if (!box || !input || !btn) return;
+
+    btn.addEventListener('click', async () => {
+        const text = input.value.trim();
+        if (!text) return;
+
+        // UI Loading State
+        box.classList.add('shimmer', 'loading-state');
+        btn.disabled = true;
+        btn.innerHTML = '<span>Parsing...</span> <i class="ph ph-spinner"></i>';
+        card.classList.remove('active');
+
+        try {
+            const res = await fetch(`${API_BASE}/api/parse-task`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ text })
+            });
+            
+            if (!res.ok) {
+                const err = await res.json();
+                throw new Error(err.error || 'Failed to parse task');
+            }
+
+            const data = await res.json();
+            currentParsedTask = data;
+
+            // Update Verification Card
+            document.getElementById('vName').innerText = data.title;
+            // Use ISO format for the editable field so it's easier to parse back, but keep display pretty
+            document.getElementById('vTime').innerText = data.start_time; 
+            document.getElementById('vDuration').innerText = data.duration_minutes || '30';
+            document.getElementById('vPriority').innerText = data.priority || '2';
+
+            card.classList.add('active');
+            card.scrollIntoView({ behavior: 'smooth' });
+
+        } catch (err) {
+            showToast('error', 'AI Parsing Failed', err.message);
+        } finally {
+            box.classList.remove('shimmer', 'loading-state');
+            btn.disabled = false;
+            btn.innerHTML = '<span>Parse AI</span> <i class="ph ph-sparkle"></i>';
+        }
+    });
+
+    // Verification Actions
+    document.getElementById('vCancel').addEventListener('click', () => {
+        card.classList.remove('active');
+        currentParsedTask = null;
+    });
+
+    document.getElementById('vConfirm').addEventListener('click', async () => {
+        if (!currentParsedTask) return;
+
+        // READ VALUES FROM EDITABLE FIELDS (User might have corrected them)
+        const correctedTitle = document.getElementById('vName').innerText.trim();
+        const correctedTime = document.getElementById('vTime').innerText.trim();
+        const correctedDuration = parseInt(document.getElementById('vDuration').innerText) || 30;
+        const correctedPriority = parseInt(document.getElementById('vPriority').innerText) || 2;
+
+        const confirmBtn = document.getElementById('vConfirm');
+        confirmBtn.disabled = true;
+        confirmBtn.innerHTML = '<i class="ph ph-spinner"></i> Adding...';
+
+        try {
+            // Map AI priority (1-3) to U/I/S (1-10) for the scoring algorithm
+            const map = { 1: 3, 2: 6, 3: 9 };
+            const p = Math.min(3, Math.max(1, correctedPriority));
+            const scoreVal = map[p];
+
+            await createTaskAPI(
+                correctedTitle,
+                scoreVal, // Urgency
+                scoreVal, // Importance
+                scoreVal, // Severity
+                correctedTime,
+                correctedDuration
+            );
+
+            showToast('success', 'Task Created', `"${correctedTitle}" added successfully.`);
+            
+            card.classList.remove('active');
+            input.value = '';
+            currentParsedTask = null;
+            if (typeof renderDashboard === 'function') renderDashboard();
+            
+        } catch (err) {
+            showToast('error', 'Add Failed', err.message);
+        } finally {
+            confirmBtn.disabled = false;
+            confirmBtn.innerHTML = 'Confirm & Add';
+        }
+    });
+}
+
+// ---------------------------------------------------------------------------
 // Global initialization
 // ---------------------------------------------------------------------------
 document.addEventListener('DOMContentLoaded', () => {
@@ -715,5 +810,8 @@ document.addEventListener('DOMContentLoaded', () => {
     if (path.includes('task.html')) renderTaskPage();
     else if (path.includes('schedule.html')) renderSchedule();
     else if (path.includes('history.html')) renderHistory();
-    else renderDashboard();
+    else {
+        renderDashboard();
+        initQuickAdd();
+    }
 });

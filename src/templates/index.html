@@ -76,11 +76,16 @@
                         <div class="v-item-value" id="vPriority" contenteditable="true">...</div>
                     </div>
                 </div>
-                <!-- Conflict Warning -->
                 <div id="vConflict" class="conflict-wrapper" style="display:none;">
                     <div class="conflict-header"><i class="ph-fill ph-warning-diamond"></i> Schedule Conflict Detected</div>
                     <div class="conflict-body" id="vConflictNote"></div>
                     <div class="conflict-suggestion" id="vConflictSuggestion"></div>
+                </div>
+                <!-- Optimization Proposal -->
+                <div id="vOptimization" class="optimization-wrapper" style="display:none;">
+                    <div class="optimization-header"><i class="ph-fill ph-sparkle"></i> Smart Optimization Recommended</div>
+                    <div class="optimization-body" id="vOptimizationNote"></div>
+                    <div class="optimization-action" id="vOptimizationAction"></div>
                 </div>
                 <div class="verification-actions">
                     <button class="btn btn-cancel" id="vCancel">Cancel</button>

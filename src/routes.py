@@ -74,16 +74,16 @@ def parse_task():
     
     current_time = datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
     
-    # Format existing tasks for AI context
+    # Format existing tasks for AI context (including IDs)
     tasks_context = ""
     if existing_tasks:
-        tasks_context = "\nExisting Tasks for Context:\n" + "\n".join([
-            f"- {t['title']} from {t['start_time']} for {t['duration_minutes']} mins (Urgency: {t.get('urgency')}, Importance: {t.get('importance')})"
+        tasks_context = "\nExisting Tasks for Context (IDs included for optimization):\n" + "\n".join([
+            f"- [ID: {t.get('id')}] {t['title']} from {t['start_time']} for {t['duration_minutes']} mins (Urgency: {t.get('urgency')}, Importance: {t.get('importance')})"
             for t in existing_tasks
         ])
 
     system_prompt = f"""
-    You are a high-performance task management AI. Your goal is to convert natural language into a strictly valid JSON task object and identify scheduling conflicts.
+    You are a high-performance schedule optimization AI. Your goal is to convert natural language into a JSON task object and optimize the user's schedule.
     
     Current Time Context: {current_time}
     {tasks_context}
@@ -94,18 +94,24 @@ def parse_task():
       "start_time": "ISO8601 string resolved from the prompt.",
       "duration_minutes": "Estimated duration in minutes (integer).",
       "priority": "Integer 1-3 (1: Low/Delegate, 2: Medium/Schedule, 3: High/Do First)",
-      "conflict_note": "A summary of any time overlap or priority conflict with existing tasks (string, optional).",
-      "suggested_time": "If a conflict exists, suggest a free time slot (string, optional e.g. '3:30 PM')"
+      "conflict_note": "Summary of any overlap.",
+      "suggested_time": "A free time slot for the NEW task if it clashes.",
+      "reschedule_proposal": {{
+         "task_id": "ID of an EXISTING task to move (integer, optional)",
+         "task_title": "Title of the task to move (string, optional)",
+         "new_start_time": "New ISO8601 time for the existing task (string, optional)"
+      }}
     }}
     
-    Rules for Parsing & Conflicts:
+    Optimization Rules:
     1. Resolve relative dates like 'tomorrow' using the Reference Time.
-    2. Analyze 'Existing Tasks' for overlaps with the new task's timeframe.
+    2. Analyze 'Existing Tasks' for overlaps.
     3. If there is a CLASH:
-       - Specify which task is more important in 'conflict_note'.
-       - Recommend a better, free time slot in 'suggested_time'.
+       - Determine if it's better to move the NEW task OR an EXISTING task to another free slot.
+       - If an EXISTING task should be moved to make room, provide details in 'reschedule_proposal'.
+       - Explain your logic in 'conflict_note'.
     
-    IMPORTANT: Return ONLY the raw JSON object. No markdown blocks.
+    IMPORTANT: Provide ANY rescheduling in 'reschedule_proposal'. Return ONLY raw JSON.
     """
     
     try:

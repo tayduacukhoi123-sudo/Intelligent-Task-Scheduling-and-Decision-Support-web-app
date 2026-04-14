@@ -711,16 +711,18 @@ async function initQuickAdd() {
         if (!text) return;
 
         // UI Loading State
+            // UI Loading State
         box.classList.add('shimmer', 'loading-state');
         btn.disabled = true;
         btn.innerHTML = '<span>Parsing...</span> <i class="ph ph-spinner"></i>';
         card.classList.remove('active');
 
         try {
-            // Fetch current tasks for context
+            // Fetch current tasks for context (including ID)
             const existingTasks = (await fetchTasks())
                 .filter(t => t.status === 'active')
                 .map(t => ({
+                    id: t.id,
                     title: t.title,
                     start_time: t.deadline,
                     duration_minutes: t.duration_minutes,
@@ -758,6 +760,17 @@ async function initQuickAdd() {
                 conflictEl.style.display = 'none';
             }
 
+            // Handle Optimization Recommendations
+            const optEl = document.getElementById('vOptimization');
+            if (data.reschedule_proposal && data.reschedule_proposal.task_id) {
+                const rp = data.reschedule_proposal;
+                document.getElementById('vOptimizationNote').innerText = `AI suggests moving your existing task "${rp.task_title}" to a different slot to maximize efficiency.`;
+                document.getElementById('vOptimizationAction').innerText = `Action: Reschedule to ${rp.new_start_time}`;
+                optEl.style.display = 'block';
+            } else {
+                optEl.style.display = 'none';
+            }
+
             card.classList.add('active');
             card.scrollIntoView({ behavior: 'smooth' });
 
@@ -779,7 +792,7 @@ async function initQuickAdd() {
     document.getElementById('vConfirm').addEventListener('click', async () => {
         if (!currentParsedTask) return;
 
-        // READ VALUES FROM EDITABLE FIELDS (User might have corrected them)
+        // READ VALUES FROM EDITABLE FIELDS
         const correctedTitle = document.getElementById('vName').innerText.trim();
         const correctedTime = document.getElementById('vTime').innerText.trim();
         const correctedDuration = parseInt(document.getElementById('vDuration').innerText) || 30;
@@ -787,10 +800,21 @@ async function initQuickAdd() {
 
         const confirmBtn = document.getElementById('vConfirm');
         confirmBtn.disabled = true;
-        confirmBtn.innerHTML = '<i class="ph ph-spinner"></i> Adding...';
+        confirmBtn.innerHTML = '<i class="ph ph-spinner"></i> Optimizing...';
 
         try {
-            // Map AI priority (1-3) to U/I/S (1-10) for the scoring algorithm
+            // STEP 1: Handle Reschedule Proposal if it exists
+            const rp = currentParsedTask.reschedule_proposal;
+            if (rp && rp.task_id && rp.new_start_time) {
+                showToast('warning', 'Rescheduling', `Moving current task: ${rp.task_title}...`);
+                await fetch(`${API_BASE}/api/tasks/${rp.task_id}`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ deadline: rp.new_start_time })
+                });
+            }
+
+            // STEP 2: Create the NEW task
             const map = { 1: 3, 2: 6, 3: 9 };
             const p = Math.min(3, Math.max(1, correctedPriority));
             const scoreVal = map[p];
@@ -804,15 +828,13 @@ async function initQuickAdd() {
                 correctedDuration
             );
 
-            showToast('success', 'Task Created', `"${correctedTitle}" added successfully.`);
-            
+            showToast('success', 'Day Optimized!', 'New task added and schedule updated.');
             card.classList.remove('active');
-            input.value = '';
-            currentParsedTask = null;
-            if (typeof renderDashboard === 'function') renderDashboard();
-            
+            document.getElementById('quickAddInput').value = '';
+            renderDashboard();
+
         } catch (err) {
-            showToast('error', 'Add Failed', err.message);
+            showToast('error', 'Optimization Failed', err.message);
         } finally {
             confirmBtn.disabled = false;
             confirmBtn.innerHTML = 'Confirm & Add';

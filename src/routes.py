@@ -113,7 +113,7 @@ def parse_task():
             return jsonify(parsed), 200
 
         response = client.models.generate_content(
-            model="gemini-2.0-flash",
+            model="gemini-flash-latest",
             contents=text,
             config=types.GenerateContentConfig(
                 system_instruction=system_prompt,
@@ -201,16 +201,17 @@ def validate_task_fields(data, is_create=False):
             errors.append("Deadline is required.")
         else:
             try:
-                # Support both YYYY-MM-DD and YYYY-MM-DDTHH:MM formats
+                # Support ISO8601 (including AI format) and simple YYYY-MM-DD
                 try:
-                    dt = datetime.strptime(deadline, "%Y-%m-%dT%H:%M")
+                    # fromisoformat handles T, seconds, etc.
+                    dt = datetime.fromisoformat(deadline.replace("Z", "+00:00"))
                 except ValueError:
                     dt = datetime.strptime(deadline, "%Y-%m-%d")
                 
                 # Block past dates ONLY on CREATE
                 if is_create:
-                    # Use minute-level precision for datetime-local
-                    now = datetime.utcnow()
+                    # Use local time to match AI context and user's timezone
+                    now = datetime.now()
                     if dt < now:
                         errors.append("Deadline cannot be in the past.")
                 

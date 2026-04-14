@@ -41,7 +41,40 @@
             </div>
         </header>
 
-        <div class="matrix-container animate-in delay-1" id="matrixContainer">
+        <div class="glass-card animate-in delay-1" style="margin-bottom: 2rem; padding: 1.5rem;">
+            <div class="calendar-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+                <div class="calendar-nav" style="display: flex; align-items: center; gap: 1rem;">
+                    <button class="btn" style="padding: 0.5rem;" onclick="changeMonth(-1)"><i class="ph ph-caret-left"></i></button>
+                    <h2 id="calendarMonthYear" style="margin: 0; min-width: 180px; text-align: center; font-size: 1.25rem;">Month Year</h2>
+                    <button class="btn" style="padding: 0.5rem;" onclick="changeMonth(1)"><i class="ph ph-caret-right"></i></button>
+                </div>
+                <button class="btn" onclick="goToToday()" style="background: rgba(99, 102, 241, 0.1); color: var(--primary); font-size: 0.85rem;">Today</button>
+            </div>
+            <div id="calendarGrid" class="calendar-grid">
+                <div class="calendar-day-label">Sun</div>
+                <div class="calendar-day-label">Mon</div>
+                <div class="calendar-day-label">Tue</div>
+                <div class="calendar-day-label">Wed</div>
+                <div class="calendar-day-label">Thu</div>
+                <div class="calendar-day-label">Fri</div>
+                <div class="calendar-day-label">Sat</div>
+                <!-- Days injected by JS -->
+            </div>
+        </div>
+
+        <div style="margin-bottom: 1.5rem; display: flex; align-items: center; justify-content: space-between;" class="animate-in delay-2">
+            <h3 id="selectedDateTitle" style="margin: 0; font-weight: 600; color: var(--text-main);">
+                Tasks for Today
+            </h3>
+            <div style="display: flex; gap: 1rem; font-size: 0.8rem; color: var(--text-muted);">
+                <span style="display:flex; align-items:center; gap:0.3rem;"><i class="ph-fill ph-circle" style="color:var(--q1-do)"></i> Q1</span>
+                <span style="display:flex; align-items:center; gap:0.3rem;"><i class="ph-fill ph-circle" style="color:var(--q2-schedule)"></i> Q2</span>
+                <span style="display:flex; align-items:center; gap:0.3rem;"><i class="ph-fill ph-circle" style="color:var(--q3-delegate)"></i> Q3</span>
+                <span style="display:flex; align-items:center; gap:0.3rem;"><i class="ph-fill ph-circle" style="color:var(--q4-eliminate)"></i> Q4</span>
+            </div>
+        </div>
+
+        <div class="matrix-container animate-in delay-3" id="matrixContainer">
             <!-- Q1: Urgent & Important -->
             <div class="glass-card quadrant q1-border" id="q1">
                 <div class="quadrant-header">

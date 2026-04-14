@@ -321,6 +321,17 @@ function calculatePriorityScore(u, i, s, deadlineStr) {
     };
 }
 
+/**
+ * Normalizes the raw priority score (0-30+) to a 1-10 scale.
+ * 10 = Urgent & Important (Immediate)
+ * 1  = Low priority (Future)
+ */
+function getNormalizedPriority(rawScore) {
+    const MAX_RAW = 30; // Based on Alpha=2, Max Base=10
+    let normalized = 1 + (rawScore / MAX_RAW) * 9;
+    return Math.min(10, Math.max(1, parseFloat(normalized.toFixed(1))));
+}
+
 function recalculateActiveScores(tasks) {
     tasks.forEach(t => {
         if (t.status === 'active') {
@@ -370,7 +381,7 @@ function taskItemHTML(t, showCompleteBtn = true) {
             <div class="task-score ${determineHighlightClass(t.daysRemaining)}" style="display:flex; align-items:center; gap:0.5rem;">
                 <span onclick="editTask(${t.id})" title="Edit" style="cursor:pointer; opacity:0.6; transition:opacity 0.2s;" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=0.6"><i class="ph ph-pencil-simple"></i></span>
                 <span onclick="deleteTask(${t.id})" title="Delete" style="cursor:pointer; opacity:0.6; color:var(--q1-do); transition:opacity 0.2s;" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=0.6"><i class="ph ph-trash"></i></span>
-                ${t.currentScore} pts
+                <i class="ph-fill ph-star" style="color:#fbbf24; font-size:0.8rem;"></i> ${getNormalizedPriority(t.currentScore)}
             </div>
             ${completeBtn}
         </div>
@@ -426,11 +437,15 @@ window.editTask = async (taskId) => {
 };
 
 // ---------------------------------------------------------------------------
-// Page renderers
+// Page renderers & State
 // ---------------------------------------------------------------------------
-// Global state for dashboard filtering
 let allActiveTasks = [];
 let searchQuery = "";
+
+// Calendar State
+let currentViewDate = new Date();
+let selectedDate = new Date(); // Defaults to today
+selectedDate.setHours(0, 0, 0, 0);
 
 async function renderDashboard() {
     const listContainer = document.getElementById('topTasksContainer');
@@ -623,23 +638,41 @@ async function renderSchedule() {
         q4: document.getElementById('q4-tasks')
     };
 
+    // Update Page Header/Title
+    const titleEl = document.getElementById('selectedDateTitle');
+    if (titleEl) {
+        const isToday = selectedDate.toDateString() === new Date().toDateString();
+        const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+        titleEl.innerText = isToday ? `Tasks for Today` : `Tasks for ${selectedDate.toLocaleDateString('en-US', options)}`;
+    }
+
     // Clear previous contents
     Object.values(qContainers).forEach(c => { if (c) c.innerHTML = '<p class="loading-mini">Loading...</p>'; });
 
     try {
-        let tasks = recalculateActiveScores(await fetchTasks()).filter(t => t.status === 'active');
+        const fetchedTasks = await fetchTasks();
+        allActiveTasks = recalculateActiveScores(fetchedTasks).filter(t => t.status === 'active');
+        
+        // Render Calendar first to show dots
+        renderCalendar();
+
+        // Filter tasks for the SELECTED day
+        const dayStr = selectedDate.toISOString().split('T')[0];
+        const dayTasks = allActiveTasks.filter(t => t.deadline.startsWith(dayStr));
         
         // Clear containers again for rendering
         Object.values(qContainers).forEach(c => { if (c) c.innerHTML = ''; });
 
-        if (tasks.length === 0) {
-            Object.values(qContainers).forEach(c => { if (c) c.innerHTML = '<div style="color:var(--text-muted); font-size:0.8rem; padding:1rem; text-align:center;">No tasks</div>'; });
+        if (dayTasks.length === 0) {
+            Object.values(qContainers).forEach(c => { 
+                if (c) c.innerHTML = '<div style="color:var(--text-muted); font-size:0.85rem; padding:1.5rem; text-align:center; border:1px dashed rgba(255,255,255,0.05); border-radius:12px;">No tasks for this day</div>'; 
+            });
             return;
         }
 
-        tasks.sort((a, b) => b.currentScore - a.currentScore);
+        dayTasks.sort((a, b) => b.currentScore - a.currentScore);
 
-        tasks.forEach(t => {
+        dayTasks.forEach(t => {
             const isUrgent = t.urgency >= 6;
             const isImportant = t.importance >= 6;
 
@@ -657,7 +690,7 @@ async function renderSchedule() {
         // Add empty message if any quadrant is empty after processing
         Object.keys(qContainers).forEach(id => {
             if (qContainers[id] && qContainers[id].innerHTML === '') {
-                qContainers[id].innerHTML = '<div style="color:var(--text-muted); font-size:0.8rem; padding:1rem; text-align:center; border:1px dashed rgba(255,255,255,0.05); border-radius:8px;">Empty</div>';
+                qContainers[id].innerHTML = '<div style="color:var(--text-muted); font-size:0.8rem; padding:1rem; text-align:center; border:1px dashed rgba(255,255,255,0.02); border-radius:8px;">Empty</div>';
             }
         });
 
@@ -665,6 +698,106 @@ async function renderSchedule() {
         matrixContainer.innerHTML = `<p style="color:#fca5a5; padding:2rem;"><i class="ph ph-warning-circle"></i> Error: ${err.message}</p>`;
     }
 }
+
+// --- Calendar Logic ---
+
+function renderCalendar() {
+    const grid = document.getElementById('calendarGrid');
+    const monthYearEl = document.getElementById('calendarMonthYear');
+    if (!grid || !monthYearEl) return;
+
+    // Preserve the labels
+    const labels = `
+        <div class="calendar-day-label">Sun</div>
+        <div class="calendar-day-label">Mon</div>
+        <div class="calendar-day-label">Tue</div>
+        <div class="calendar-day-label">Wed</div>
+        <div class="calendar-day-label">Thu</div>
+        <div class="calendar-day-label">Fri</div>
+        <div class="calendar-day-label">Sat</div>
+    `;
+
+    const year = currentViewDate.getFullYear();
+    const month = currentViewDate.getMonth();
+    
+    monthYearEl.innerText = new Intl.DateTimeFormat('en-US', { month: 'long', year: 'numeric' }).format(currentViewDate);
+
+    const firstDay = new Date(year, month, 1).getDay();
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    
+    const prevMonthDays = new Date(year, month, 0).getDate();
+    
+    let html = labels;
+
+    // Previous month's padding
+    for (let i = firstDay; i > 0; i--) {
+        html += `<div class="calendar-day other-month"><div class="day-num">${prevMonthDays - i + 1}</div></div>`;
+    }
+
+    // Current month's days
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    for (let d = 1; d <= daysInMonth; d++) {
+        const date = new Date(year, month, d);
+        const dateStr = date.toISOString().split('T')[0];
+        
+        const isToday = date.toDateString() === today.toDateString();
+        const isSelected = date.toDateString() === selectedDate.toDateString();
+        
+        // Find tasks for this day to draw dots
+        const dayTasks = allActiveTasks.filter(t => t.deadline.startsWith(dateStr));
+        const quadrants = new Set();
+        dayTasks.forEach(t => {
+            const isUrgent = t.urgency >= 6;
+            const isImportant = t.importance >= 6;
+            if (isUrgent && isImportant) quadrants.add('q1');
+            else if (!isUrgent && isImportant) quadrants.add('q2');
+            else if (isUrgent && !isImportant) quadrants.add('q3');
+            else quadrants.add('q4');
+        });
+
+        let dotsHtml = '<div class="calendar-dots">';
+        if (quadrants.has('q1')) dotsHtml += '<div class="dot" style="background:var(--q1-do)"></div>';
+        if (quadrants.has('q2')) dotsHtml += '<div class="dot" style="background:var(--q2-schedule)"></div>';
+        if (quadrants.has('q3')) dotsHtml += '<div class="dot" style="background:var(--q3-delegate)"></div>';
+        if (quadrants.has('q4')) dotsHtml += '<div class="dot" style="background:var(--q4-eliminate)"></div>';
+        dotsHtml += '</div>';
+
+        html += `
+            <div class="calendar-day ${isToday ? 'today' : ''} ${isSelected ? 'active' : ''}" onclick="selectDate(${year}, ${month}, ${d})">
+                <div class="day-num">${d}</div>
+                ${dotsHtml}
+            </div>
+        `;
+    }
+
+    // Next month's padding
+    const remaining = 42 - (firstDay + daysInMonth); // 6 rows
+    for (let i = 1; i <= remaining; i++) {
+        html += `<div class="calendar-day other-month"><div class="day-num">${i}</div></div>`;
+    }
+
+    grid.innerHTML = html;
+}
+
+window.selectDate = (y, m, d) => {
+    selectedDate = new Date(y, m, d);
+    selectedDate.setHours(0, 0, 0, 0);
+    renderSchedule();
+};
+
+window.changeMonth = (delta) => {
+    currentViewDate.setMonth(currentViewDate.getMonth() + delta);
+    renderCalendar();
+};
+
+window.goToToday = () => {
+    currentViewDate = new Date();
+    selectedDate = new Date();
+    selectedDate.setHours(0, 0, 0, 0);
+    renderSchedule();
+};
 
 async function renderHistory() {
     const tbody = document.getElementById('historyTableBody');

@@ -392,6 +392,7 @@ async function loadTaskForEdit(taskId) {
         document.getElementById('sSlider').value = t.severity;
         document.getElementById('severityVal').innerText = t.severity;
         document.getElementById('taskDate').value = formatDateForInput(t.deadline);
+        document.getElementById('taskDuration').value = t.duration_minutes || '';
 
         const btn = document.getElementById('submitBtn');
         btn.innerHTML = '<i class="ph ph-check"></i> Update Task';
@@ -497,7 +498,8 @@ async function renderTaskPage() {
             urgency: document.getElementById('uSlider').value,
             importance: document.getElementById('iSlider').value,
             severity: document.getElementById('sSlider').value,
-            deadline: document.getElementById('taskDate').value
+            deadline: document.getElementById('taskDate').value,
+            duration_minutes: document.getElementById('taskDuration').value
         };
 
         try {
@@ -511,7 +513,8 @@ async function renderTaskPage() {
                     taskData.urgency,
                     taskData.importance,
                     taskData.severity,
-                    taskData.deadline
+                    taskData.deadline,
+                    taskData.duration_minutes
                 );
                 btn.innerHTML = '<i class="ph ph-check"></i> Added!';
                 showToast('success', 'Task Created', `"${taskData.title}" has been added to your list.`);
@@ -757,7 +760,8 @@ async function initQuickAdd() {
             document.getElementById('vName').innerText = data.title;
             document.getElementById('vTime').innerText = data.start_time; 
             document.getElementById('vDuration').innerText = data.duration_minutes || '30';
-            document.getElementById('vPriority').innerText = data.priority || '2';
+            document.getElementById('vUrgency').innerText = data.urgency || '5';
+            document.getElementById('vImportance').innerText = data.importance || '5';
 
             // Handle Conflicts
             const conflictEl = document.getElementById('vConflict');
@@ -816,7 +820,8 @@ async function initQuickAdd() {
         const correctedTitle = document.getElementById('vName').innerText.trim();
         const correctedTime = document.getElementById('vTime').innerText.trim();
         const correctedDuration = parseInt(document.getElementById('vDuration').innerText) || 30;
-        const correctedPriority = parseInt(document.getElementById('vPriority').innerText) || 2;
+        const correctedUrgency = parseInt(document.getElementById('vUrgency').innerText) || 5;
+        const correctedImportance = parseInt(document.getElementById('vImportance').innerText) || 5;
 
         const confirmBtn = document.getElementById('vConfirm');
         confirmBtn.disabled = true;
@@ -835,15 +840,11 @@ async function initQuickAdd() {
             }
 
             // STEP 2: Create the NEW task
-            const map = { 1: 3, 2: 6, 3: 9 };
-            const p = Math.min(3, Math.max(1, correctedPriority));
-            const scoreVal = map[p];
-
             await createTaskAPI(
                 correctedTitle,
-                scoreVal, // Urgency
-                scoreVal, // Importance
-                scoreVal, // Severity
+                correctedUrgency, // Urgency
+                correctedImportance, // Importance
+                correctedImportance, // Severity (using importance as fallback for severity)
                 correctedTime,
                 correctedDuration
             );

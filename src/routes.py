@@ -93,7 +93,9 @@ def parse_task():
       "title": "Clear, actionable task title",
       "start_time": "ISO8601 string resolved from the prompt.",
       "duration_minutes": "Estimated duration in minutes (integer).",
-      "priority": "Integer 1-3 (1: Low/Delegate, 2: Medium/Schedule, 3: High/Do First)",
+      "urgency": "Integer 1-10 (How soon does this need to be done? 10=Immediate, 1=No rush)",
+      "importance": "Integer 1-10 (How much long-term value does this have? 10=Critical goal, 1=Minor task)",
+      "duration_minutes": "Estimated duration in minutes (integer).",
       "conflict_note": "Summary of any overlap.",
       "suggested_time": "A free ISO8601 time slot for the NEW task if it clashes (string, optional).",
       "reschedule_proposal": {{
@@ -102,6 +104,12 @@ def parse_task():
          "new_start_time": "New ISO8601 time for the existing task (string, optional)"
       }}
     }}
+    
+    Eisenhower Matrix Guidance:
+    - DO FIRST (Q1): High Urgency (>=6) AND High Importance (>=6)
+    - SCHEDULE (Q2): Low Urgency (<6) AND High Importance (>=6)
+    - DELEGATE (Q3): High Urgency (>=6) AND Low Importance (<6)
+    - ELIMINATE (Q4): Low Urgency (<6) AND Low Importance (<6)
     
     Optimization Rules:
     1. Resolve relative dates like 'tomorrow' using the Reference Time.
@@ -127,7 +135,7 @@ def parse_task():
             return jsonify(parsed), 200
 
         response = client.models.generate_content(
-            model="gemini-flash-latest",
+            model="gemma-4-31b-it",
             contents=text,
             config=types.GenerateContentConfig(
                 system_instruction=system_prompt,

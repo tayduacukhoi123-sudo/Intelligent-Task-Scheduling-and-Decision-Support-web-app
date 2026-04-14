@@ -225,7 +225,7 @@ async function fetchTasks() {
     return res.json();
 }
 
-async function createTaskAPI(title, urgency, importance, severity, deadline, duration_minutes = null) {
+async function createTaskAPI(title, urgency, importance, severity, deadline, duration_minutes = null, tags = []) {
     const res = await fetch(`${API_BASE}/api/tasks`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -237,7 +237,7 @@ async function createTaskAPI(title, urgency, importance, severity, deadline, dur
             severity: parseInt(severity),
             deadline,
             duration_minutes,
-            tags: data && data.tags ? data.tags : []
+            tags: tags
         })
     });
     if (!res.ok) {
@@ -572,7 +572,8 @@ async function renderTaskPage() {
                     taskData.importance,
                     taskData.severity,
                     taskData.deadline,
-                    taskData.duration_minutes
+                    taskData.duration_minutes,
+                    taskData.tags
                 );
                 btn.innerHTML = '<i class="ph ph-check"></i> Added!';
                 showToast('success', 'Task Created', `"${taskData.title}" has been added to your list.`);
@@ -1053,11 +1054,12 @@ async function initQuickAdd() {
             // STEP 2: Create the NEW task
             await createTaskAPI(
                 correctedTitle,
-                correctedUrgency, // Urgency
-                correctedImportance, // Importance
-                correctedImportance, // Severity (using importance as fallback for severity)
+                correctedUrgency,
+                correctedImportance,
+                correctedImportance, // Severity fallback
                 correctedTime,
-                correctedDuration
+                correctedDuration,
+                currentParsedTask.tags || []
             );
 
             showToast('success', 'Day Optimized!', 'New task added and schedule updated.');

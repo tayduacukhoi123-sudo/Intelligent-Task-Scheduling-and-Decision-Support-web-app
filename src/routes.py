@@ -67,39 +67,52 @@ def parse_task():
     
     data = request.get_json()
     text = data.get("text")
+    data = request.get_json()
+    text = data.get("text", "")
+    existing_tasks = data.get("existing_tasks", [])
+    
     if not text:
         return jsonify({"error": "Text is required"}), 400
     
     current_time = datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
     
+    # Format existing tasks for AI context
+    tasks_context = ""
+    if existing_tasks:
+        tasks_context = "\nExisting Tasks for Context:\n" + "\n".join([
+            f"- {t['title']} from {t['start_time']} for {t['duration_minutes']} mins (Priority: {t['priority']})"
+            for t in existing_tasks
+        ])
+
     system_prompt = f"""
-    You are a high-performance task management AI. Your goal is to convert natural language into a strictly valid JSON task object.
+    You are a high-performance task management AI. Your goal is to convert natural language into a strictly valid JSON task object and identify scheduling conflicts.
     
     Current Time Context: {current_time}
+    {tasks_context}
     
     Output JSON Schema:
     {{
       "title": "Clear, actionable task title",
-      "start_time": "ISO8601 string (e.g., 2026-04-14T15:30:00). Resolve relative terms like 'tomorrow', 'next Mon', 'in 2 hours' using the Reference Time.",
-      "duration_minutes": "Estimated duration in minutes (integer). Default to 30 if unspecified but implied.",
-      "priority": "Integer 1-3 (1: Low/Delegate, 2: Medium/Schedule, 3: High/Do First)"
+      "start_time": "ISO8601 string resolved from the prompt.",
+      "duration_minutes": "Estimated duration in minutes (integer).",
+      "priority": "Integer 1-3 (1: Low/Delegate, 2: Medium/Schedule, 3: High/Do First)",
+      "conflict_note": "A summary of any time overlap or priority conflict with existing tasks (string, optional).",
+      "suggested_time": "If a conflict exists, suggest a free time slot (string, optional e.g. '3:30 PM')"
     }}
     
-    Rules for Parsing:
-    1. Title: Remove filler words like "I need to" or "Remind me to".
-    2. Start Time: If a date is mentioned without a time, default to 09:00:00 for that date. If no date is mentioned, assume TODAY.
-    3. Duration: If words like "for 1 hour" or "30 mins" appear, extract precisely.
-    4. Priority: 
-       - 3: Words like "urgent", "asap", "important", "now".
-       - 2: Standard tasks, "tomorrow", "next week".
-       - 1: Minor tasks, "whenever", "low priority".
+    Rules for Parsing & Conflicts:
+    1. Resolve relative dates like 'tomorrow' using the Reference Time.
+    2. Analyze 'Existing Tasks' for overlaps with the new task's timeframe.
+    3. If there is a CLASH:
+       - Specify which task is more important in 'conflict_note'.
+       - Recommend a better, free time slot in 'suggested_time'.
     
-    IMPORTANT: Return ONLY the raw JSON object. No markdown blocks, no triple backticks.
+    IMPORTANT: Return ONLY the raw JSON object. No markdown blocks.
     """
     
     try:
         if not client:
-            # Enhanced mock for developer testing when key is missing
+            # Enhanced mock remains for safety
             import datetime as dt
             parsed = {
                 "title": text.title(),
@@ -107,9 +120,6 @@ def parse_task():
                 "duration_minutes": 30,
                 "priority": 2
             }
-            if "urgent" in text.lower() or "now" in text.lower():
-                parsed["priority"] = 3
-                parsed["start_time"] = datetime.now().isoformat()
             return jsonify(parsed), 200
 
         response = client.models.generate_content(
@@ -121,7 +131,6 @@ def parse_task():
             )
         )
         
-        # Robust parsing (strip backticks if the model ignores the instruction)
         resp_text = response.text.strip()
         if resp_text.startswith("```"):
             resp_text = resp_text.split("\n", 1)[1].rsplit("\n", 1)[0]

@@ -717,10 +717,20 @@ async function initQuickAdd() {
         card.classList.remove('active');
 
         try {
+            // Fetch current tasks for context
+            const existingTasks = (await fetchTasks())
+                .filter(t => t.status === 'active')
+                .map(t => ({
+                    title: t.title,
+                    start_time: t.deadline,
+                    duration_minutes: t.duration_minutes,
+                    priority: t.priority
+                }));
+
             const res = await fetch(`${API_BASE}/api/parse-task`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ text })
+                body: JSON.stringify({ text, existing_tasks: existingTasks })
             });
             
             if (!res.ok) {
@@ -733,10 +743,19 @@ async function initQuickAdd() {
 
             // Update Verification Card
             document.getElementById('vName').innerText = data.title;
-            // Use ISO format for the editable field so it's easier to parse back, but keep display pretty
             document.getElementById('vTime').innerText = data.start_time; 
             document.getElementById('vDuration').innerText = data.duration_minutes || '30';
             document.getElementById('vPriority').innerText = data.priority || '2';
+
+            // Handle Conflicts
+            const conflictEl = document.getElementById('vConflict');
+            if (data.conflict_note) {
+                document.getElementById('vConflictNote').innerText = data.conflict_note;
+                document.getElementById('vConflictSuggestion').innerText = data.suggested_time ? `Pro-tip: ${data.suggested_time}` : '';
+                conflictEl.style.display = 'block';
+            } else {
+                conflictEl.style.display = 'none';
+            }
 
             card.classList.add('active');
             card.scrollIntoView({ behavior: 'smooth' });

@@ -95,7 +95,7 @@ def parse_task():
       "duration_minutes": "Estimated duration in minutes (integer).",
       "priority": "Integer 1-3 (1: Low/Delegate, 2: Medium/Schedule, 3: High/Do First)",
       "conflict_note": "Summary of any overlap.",
-      "suggested_time": "A free time slot for the NEW task if it clashes.",
+      "suggested_time": "A free ISO8601 time slot for the NEW task if it clashes (string, optional).",
       "reschedule_proposal": {{
          "task_id": "ID of an EXISTING task to move (integer, optional)",
          "task_title": "Title of the task to move (string, optional)",

@@ -752,9 +752,20 @@ async function initQuickAdd() {
 
             // Handle Conflicts
             const conflictEl = document.getElementById('vConflict');
+            const sugEl = document.getElementById('vConflictSuggestion');
             if (data.conflict_note) {
                 document.getElementById('vConflictNote').innerText = data.conflict_note;
-                document.getElementById('vConflictSuggestion').innerText = data.suggested_time ? `Pro-tip: ${data.suggested_time}` : '';
+                
+                if (data.suggested_time) {
+                    sugEl.innerText = `Pro-tip: Click to move to ${data.suggested_time}`;
+                    sugEl.onclick = () => {
+                        document.getElementById('vTime').innerText = data.suggested_time;
+                        showToast('success', 'Time Updated', 'New suggested time applied!');
+                    };
+                    sugEl.style.display = 'inline-block';
+                } else {
+                    sugEl.style.display = 'none';
+                }
                 conflictEl.style.display = 'block';
             } else {
                 conflictEl.style.display = 'none';

@@ -24,6 +24,13 @@ def create_app(config_override=None):
     
     with app.app_context():
         db.create_all()
+        # Simple migration for existing SQLite DBs
+        try:
+            from sqlalchemy import text
+            db.session.execute(text('ALTER TABLE task ADD COLUMN tags TEXT'))
+            db.session.commit()
+        except:
+            db.session.rollback()
     
     return app
 

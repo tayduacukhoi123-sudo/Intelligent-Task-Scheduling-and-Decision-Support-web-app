@@ -39,30 +39,38 @@
                 <h1 class="page-title">Activity History</h1>
                 <p class="page-subtitle">Review past completed tasks and their final priority scores.</p>
             </div>
-            <button onclick="clearHistoryAll()" class="btn" style="background:rgba(239, 68, 68, 0.1); color:var(--q1-do); border:1px solid rgba(239, 68, 68, 0.2);">
-                <i class="ph ph-trash"></i> Clear History
-            </button>
+                <div style="display: flex; gap: 1rem;">
+                    <button id="downloadXlsxBtn" onclick="downloadHistoryXLSX()" class="btn" style="background: rgba(16, 185, 129, 0.15); color: #6ee7b7; border: 1px solid rgba(16, 185, 129, 0.3);">
+                        <i class="ph ph-file-xls"></i> Download XLSX
+                    </button>
+                    <button id="clearHistoryBtn" onclick="clearHistoryAll()" class="btn"
+                        style="background:rgba(239,68,68,0.15); color:#fca5a5; border:1px solid rgba(239,68,68,0.3);">
+                        <i class="ph ph-trash"></i> Clear All History
+                    </button>
+                </div>
+            </div>
         </header>
 
-        <div class="glass-card table-container animate-in delay-1">
-            <table class="data-table">
-                <thead>
-                    <tr>
-                        <th>Date (Deadline)</th>
-                        <th>Task Name</th>
-                        <th>Final Score</th>
-                        <th>Status</th>
-                    </tr>
-                </thead>
-                <tbody id="historyTableBody">
-                    <tr>
-                        <td colspan="4" style="text-align:center; color:var(--text-muted);">Loading history…</td>
-                    </tr>
-                </tbody>
-            </table>
+        <div class="glass-card animate-in delay-1">
+            <div class="table-container">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Completed Date</th>
+                            <th>Task Title</th>
+                            <th>Original Priority</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="historyTableBody">
+                        <!-- History injected by JS -->
+                    </tbody>
+                </table>
+            </div>
         </div>
     </main>
     <div class="toast-container" id="toastContainer"></div>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="/static/script.js"></script>
 </body>
 

@@ -82,6 +82,20 @@ def parse_task():
             for t in existing_tasks
         ])
 
+    # Get existing tags for this user to help AI deduplicate
+    user_id = data.get("user_id")
+    existing_tags_str = "[]"
+    if user_id:
+        user_tasks = Task.query.filter_by(user_id=user_id).all()
+        tags_set = set()
+        for ut in user_tasks:
+            if ut.tags:
+                try:
+                    for tag in json.loads(ut.tags):
+                        tags_set.add(tag['name'])
+                except: pass
+        existing_tags_str = json.dumps(list(tags_set))
+
     system_prompt = f"""
     You are a high-performance schedule optimization AI. Your goal is to convert natural language into a JSON task object and optimize the user's schedule.
     
@@ -95,7 +109,7 @@ def parse_task():
       "duration_minutes": "Estimated duration in minutes (integer).",
       "urgency": "Integer 1-10 (How soon does this need to be done? 10=Immediate, 1=No rush)",
       "importance": "Integer 1-10 (How much long-term value does this have? 10=Critical goal, 1=Minor task)",
-      "duration_minutes": "Estimated duration in minutes (integer).",
+      "tags": [{{ "name": "Work", "color": "blue" }}, {{ "name": "DeepWork", "color": "purple" }}],
       "conflict_note": "Summary of any overlap.",
       "suggested_time": "A free ISO8601 time slot for the NEW task if it clashes (string, optional).",
       "reschedule_proposal": {{
@@ -105,6 +119,20 @@ def parse_task():
       }}
     }}
     
+    Tag Extraction & Taxonomy Rules:
+    1. Limit: Generate exactly 2-3 tags per task.
+    2. Hybrid Taxonomy: Use the user's existing tags where semantic matches exist. Existing tags: {existing_tags_str}. 
+       If confidence for an existing tag matching is < 70%, create a NEW Custom Tag.
+    3. Contextual "Mood" & "Energy": 
+       - #DeepWork (for tasks > 90 mins)
+       - #QuickWin (for tasks < 15 mins)
+       - #HighEnergy (strategic, meetings) vs #LowEnergy (admin, expenses)
+    4. Avoid Noun-Hoarding: Focus on Action (e.g., #Communication) and Context (e.g., #ParisProject) rather than generic nouns.
+    5. Automatic Color Logic:
+       - Warm (red, orange): High urgency tasks.
+       - Cool (blue, purple): Creative, Schedule (Q2), or focus tasks.
+    6. Implicit Tagging: Add category tags like #Development even if the word isn't in the input (e.g. for "Fix bug").
+
     Eisenhower Matrix Guidance:
     - DO FIRST (Q1): High Urgency (>=6) AND High Importance (>=6)
     - SCHEDULE (Q2): Low Urgency (<6) AND High Importance (>=6)
@@ -169,6 +197,7 @@ def get_tasks():
             "severity": t.severity,
             "deadline": t.deadline,
             "duration_minutes": t.duration_minutes,
+            "tags": json.loads(t.tags) if t.tags else [],
             "status": t.status,
             "createdAt": t.created_at.isoformat()
         })
@@ -186,6 +215,8 @@ def get_task(task_id):
         "importance": task.importance,
         "severity": task.severity,
         "deadline": task.deadline,
+        "duration_minutes": task.duration_minutes,
+        "tags": json.loads(task.tags) if task.tags else [],
         "status": task.status
     }), 200
 
@@ -280,7 +311,8 @@ def create_task():
         importance=int(data.get("importance", 1)),
         severity=int(data.get("severity", 1)),
         deadline=data.get("deadline", ""),
-        duration_minutes=data.get("duration_minutes")
+        duration_minutes=data.get("duration_minutes"),
+        tags=json.dumps(data.get("tags", [])) if data.get("tags") else "[]"
     )
     db.session.add(task)
     db.session.commit()
@@ -312,6 +344,7 @@ def update_task(task_id):
     if "severity" in data: task.severity = int(data["severity"])
     if "deadline" in data: task.deadline = data["deadline"]
     if "duration_minutes" in data: task.duration_minutes = data["duration_minutes"]
+    if "tags" in data: task.tags = json.dumps(data["tags"])
     
     db.session.commit()
     return jsonify({"id": task.id, "status": task.status, "title": task.title}), 200

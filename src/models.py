@@ -18,6 +18,7 @@ class Task(db.Model):
     deadline = db.Column(db.String(50), nullable=False) # Store YYYY-MM-DD as string for simplicity, or Date
     duration_minutes = db.Column(db.Integer, nullable=True)
     status = db.Column(db.String(20), nullable=False, default='active')
+    tags = db.Column(db.Text, nullable=True) # JSON stored as string: [{"name":"Work", "color":"blue"}]
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     
     schedules = db.relationship("Schedule", backref="task", lazy=True, cascade="all, delete-orphan")

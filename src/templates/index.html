@@ -41,6 +41,16 @@
                 <h1 class="page-title">Dashboard Overview</h1>
                 <p class="page-subtitle">Your productivity at a glance.</p>
             </div>
+            <!-- Daily Win Progress Bar -->
+            <div class="progress-section" style="flex: 0 0 300px;">
+                <div class="progress-label">
+                    <span><i class="ph ph-target"></i> Daily Win</span>
+                    <span id="progressPercent">0%</span>
+                </div>
+                <div class="progress-container">
+                    <div id="progressFill" class="progress-fill"></div>
+                </div>
+            </div>
         </header>
 
         <div class="quick-add-container animate-in delay-1">
@@ -117,9 +127,16 @@
         </div>
 
         <div class="glass-card animate-in delay-2" style="margin-bottom: 2rem;">
-            <h3 style="margin-bottom: 1.5rem; display: flex; align-items: center; gap: 0.5rem; font-weight: 600;">
-                <i class="ph ph-trend-up" style="color: var(--primary)"></i> Top 3 Highest Priority Tasks
-            </h3>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+                <h3 style="margin-bottom: 0; display: flex; align-items: center; gap: 0.5rem; font-weight: 600;">
+                    <i class="ph ph-trend-up" style="color: var(--primary)"></i> Top 3 Highest Priority Tasks
+                </h3>
+                <!-- Search Bar -->
+                <div class="search-box">
+                    <i class="ph ph-magnifying-glass"></i>
+                    <input type="text" id="taskSearch" placeholder="Search tasks or tags...">
+                </div>
+            </div>
             <div id="topTasksContainer" style="display: flex; flex-direction: column; gap: 1rem;">
                 <p style="color:var(--text-muted)">Loading tasks…</p>
             </div>

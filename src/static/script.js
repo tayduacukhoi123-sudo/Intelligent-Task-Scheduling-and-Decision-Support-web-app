@@ -236,7 +236,8 @@ async function createTaskAPI(title, urgency, importance, severity, deadline, dur
             importance: parseInt(importance),
             severity: parseInt(severity),
             deadline,
-            duration_minutes
+            duration_minutes,
+            tags: data && data.tags ? data.tags : []
         })
     });
     if (!res.ok) {
@@ -351,6 +352,10 @@ function taskItemHTML(t, showCompleteBtn = true) {
         ? `<button onclick="markCompleted(${t.id})" class="badge badge-success" style="cursor:pointer; border:none; padding: 0.25rem 0.6rem;">Complete <i class="ph ph-check"></i></button>`
         : '';
 
+    const tagsHTML = (t.tags && t.tags.length > 0)
+        ? `<div class="task-tags">${t.tags.map(tag => `<span class="tag-chip tag-${tag.color || 'blue'}">${tag.name}</span>`).join('')}</div>`
+        : '';
+
     return `
     <div class="task-item" style="${determineHighlightBorder(t.daysRemaining)} background: rgba(0,0,0,0.2);">
         <div class="task-info">
@@ -359,6 +364,7 @@ function taskItemHTML(t, showCompleteBtn = true) {
                 <span><i class="ph ph-calendar-blank"></i> ${formatDeadline(t.deadline)}</span>
                 <span>U:${t.urgency} | I:${t.importance} | S:${t.severity}</span>
             </div>
+            ${tagsHTML}
         </div>
         <div style="display:flex; flex-direction:column; align-items:flex-end; gap:0.5rem;">
             <div class="task-score ${determineHighlightClass(t.daysRemaining)}" style="display:flex; align-items:center; gap:0.5rem;">
@@ -393,6 +399,7 @@ async function loadTaskForEdit(taskId) {
         document.getElementById('severityVal').innerText = t.severity;
         document.getElementById('taskDate').value = formatDateForInput(t.deadline);
         document.getElementById('taskDuration').value = t.duration_minutes || '';
+        document.getElementById('taskTags').value = t.tags ? t.tags.map(tag => tag.name).join(', ') : '';
 
         const btn = document.getElementById('submitBtn');
         btn.innerHTML = '<i class="ph ph-check"></i> Update Task';
@@ -421,46 +428,78 @@ window.editTask = async (taskId) => {
 // ---------------------------------------------------------------------------
 // Page renderers
 // ---------------------------------------------------------------------------
+// Global state for dashboard filtering
+let allActiveTasks = [];
+let searchQuery = "";
+
 async function renderDashboard() {
     const listContainer = document.getElementById('topTasksContainer');
     if (!listContainer) return;
 
     try {
-        let tasks = recalculateActiveScores(await fetchTasks()).filter(t => t.status === 'active');
+        allActiveTasks = recalculateActiveScores(await fetchTasks()).filter(t => t.status === 'active');
 
-        document.getElementById('statTotal').innerText = tasks.length;
-        document.getElementById('statNear').innerText = tasks.filter(t => t.daysRemaining >= 0 && t.daysRemaining <= 2).length;
-        document.getElementById('statOverdue').innerText = tasks.filter(t => t.daysRemaining < 0).length;
+        document.getElementById('statTotal').innerText = allActiveTasks.length;
+        document.getElementById('statNear').innerText = allActiveTasks.filter(t => t.daysRemaining >= 0 && t.daysRemaining <= 2).length;
+        document.getElementById('statOverdue').innerText = allActiveTasks.filter(t => t.daysRemaining < 0).length;
 
-        tasks.sort((a, b) => b.currentScore - a.currentScore);
-        const top3 = tasks.slice(0, 3);
-
-        if (top3.length === 0) {
-            listContainer.innerHTML = '<p style="color:var(--text-muted)">No active tasks. <a href="/task.html" style="color:var(--primary)">Add one!</a></p>';
-            return;
+        // Initialize Search Listener
+        const searchInput = document.getElementById('taskSearch');
+        if (searchInput && !searchInput.dataset.listener) {
+            searchInput.addEventListener('input', (e) => {
+                searchQuery = e.target.value;
+                updateDashboardUI();
+            });
+            searchInput.dataset.listener = 'true';
         }
-        listContainer.innerHTML = top3.map(t => `
-            <div class="task-item" style="${determineHighlightBorder(t.daysRemaining)}; display:flex;">
-                <div class="task-info">
-                    <div class="task-name">${t.title}</div>
-                    <div class="task-meta">
-                        <span>${formatDeadline(t.deadline)}</span>
-                        <span style="color:${t.daysRemaining < 0 ? 'var(--q1-do)' : 'inherit'}">
-                            ${t.daysRemaining < 0 ? 'Overdue!' : (isNaN(t.totalHours) ? 'Invalid Date' : (Math.max(0, Math.floor(t.totalHours)) + ' hours left'))}
-                        </span>
-                    </div>
-                </div>
-                <div style="display:flex; flex-direction:column; align-items:flex-end; gap:0.5rem;">
-                    <div class="task-score ${determineHighlightClass(t.daysRemaining)}" style="display:flex; align-items:center; gap:0.5rem;">
-                        <span onclick="editTask(${t.id})" title="Edit" style="cursor:pointer; opacity:0.6;"><i class="ph ph-pencil-simple"></i></span>
-                        <span onclick="deleteTask(${t.id})" title="Delete" style="cursor:pointer; opacity:0.6; color:var(--q1-do);"><i class="ph ph-trash"></i></span>
-                        ${t.currentScore} pts
-                    </div>
-                    <button onclick="markCompleted(${t.id})" class="badge badge-success" style="cursor:pointer; border:none; padding: 0.25rem 0.6rem;">Complete <i class="ph ph-check"></i></button>
-                </div>
-            </div>`).join('');
+
+        updateDashboardUI();
+        updateProgress();
     } catch (err) {
         listContainer.innerHTML = `<p style="color:#fca5a5"><i class="ph ph-warning-circle"></i> Could not load tasks: ${err.message}</p>`;
+    }
+}
+
+function updateDashboardUI() {
+    const listContainer = document.getElementById('topTasksContainer');
+    if (!listContainer) return;
+
+    const query = searchQuery.toLowerCase();
+    let filtered = allActiveTasks.filter(t => {
+        const matchesTitle = t.title.toLowerCase().includes(query);
+        const matchesTags = t.tags && t.tags.some(tag => tag.name.toLowerCase().includes(query));
+        return matchesTitle || matchesTags;
+    });
+
+    filtered.sort((a, b) => b.currentScore - a.currentScore);
+    const top3 = filtered.slice(0, 3);
+
+    if (top3.length === 0) {
+        listContainer.innerHTML = `<p style="color:var(--text-muted)">${searchQuery ? 'No matching tasks found.' : 'No active tasks. <a href="/task.html" style="color:var(--primary)">Add one!</a>'}</p>`;
+        return;
+    }
+    listContainer.innerHTML = top3.map(t => taskItemHTML(t)).join('');
+}
+
+async function updateProgress() {
+    const progressFill = document.getElementById('progressFill');
+    const progressPercent = document.getElementById('progressPercent');
+    if (!progressFill || !progressPercent) return;
+
+    try {
+        const allTasks = await fetchTasks();
+        const todayStr = new Date().toISOString().split('T')[0];
+
+        const todayTasks = allTasks.filter(t => t.deadline.startsWith(todayStr));
+        const completedToday = todayTasks.filter(t => t.status === 'completed').length;
+        const totalToday = todayTasks.length;
+
+        const percent = totalToday === 0 ? 0 : Math.round((completedToday / totalToday) * 100);
+        
+        progressFill.style.width = `${percent}%`;
+        progressPercent.innerText = `${percent}%`;
+    } catch (err) {
+        console.error("Progress update failed:", err);
     }
 }
 
@@ -499,7 +538,11 @@ async function renderTaskPage() {
             importance: document.getElementById('iSlider').value,
             severity: document.getElementById('sSlider').value,
             deadline: document.getElementById('taskDate').value,
-            duration_minutes: document.getElementById('taskDuration').value
+            duration_minutes: document.getElementById('taskDuration').value,
+            tags: document.getElementById('taskTags').value.split(',').map(s => s.trim()).filter(s => s !== "").map(name => ({
+                name,
+                color: 'blue' // Manual tags default to blue
+            }))
         };
 
         try {
@@ -647,6 +690,41 @@ async function renderHistory() {
         }).join('');
     } catch (err) {
         tbody.innerHTML = `<tr><td colspan="4" style="color:#fca5a5"><i class="ph ph-warning-circle"></i> Could not load history: ${err.message}</td></tr>`;
+    }
+}
+
+async function downloadHistoryXLSX() {
+    try {
+        const tasks = (await fetchTasks()).filter(t => t.status === 'completed');
+        if (tasks.length === 0) {
+            showToast('warning', 'Empty Export', 'No completed tasks found to export.');
+            return;
+        }
+
+        const data = tasks.map(t => {
+            const res = calculatePriorityScore(t.urgency, t.importance, t.severity, t.deadline);
+            return {
+                "Task Title": t.title,
+                "Deadline": formatDeadline(t.deadline),
+                "Category Tags": t.tags ? t.tags.map(tag => tag.name).join(', ') : '',
+                "Urgency": t.urgency,
+                "Importance": t.importance,
+                "Severity": t.severity,
+                "Duration (min)": t.duration_minutes || 'N/A',
+                "Final Score": res.score,
+                "Status": "Completed"
+            };
+        });
+
+        const worksheet = XLSX.utils.json_to_sheet(data);
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, worksheet, "Task History");
+
+        const fileName = `Task_History_${new Date().toISOString().split('T')[0]}.xlsx`;
+        XLSX.writeFile(workbook, fileName);
+        showToast('success', 'Export Successful', `Downloaded ${fileName}`);
+    } catch (err) {
+        showToast('error', 'Export Failed', err.message);
     }
 }
 

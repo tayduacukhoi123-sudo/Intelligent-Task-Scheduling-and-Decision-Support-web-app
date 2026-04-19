@@ -2,7 +2,7 @@ services:
   - type: web
     name: task-priority-manager
     runtime: python
-    buildCommand: "pip install -r requirements.txt"
+    buildCommand: "pip install -r requirements.txt && flask db upgrade"
     startCommand: "gunicorn app:app"
     rootDir: src
     envVars:

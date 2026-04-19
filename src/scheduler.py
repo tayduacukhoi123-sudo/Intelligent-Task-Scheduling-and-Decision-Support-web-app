@@ -53,8 +53,8 @@ def init_scheduler(app):
             id="daily_notification_job",
             func=daily_notification_job,
             trigger="cron",
-            hour=8,
-            minute=0,
+            hour=16,
+            minute=10,
         )
 
         scheduler.start()

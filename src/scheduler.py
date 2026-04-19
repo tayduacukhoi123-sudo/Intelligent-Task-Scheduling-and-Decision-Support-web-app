@@ -8,6 +8,7 @@ job that emails users about tasks due today.
 import logging
 import os
 from datetime import date
+from typing import Optional
 
 from flask import Flask
 from flask_apscheduler import APScheduler
@@ -21,10 +22,11 @@ logger = logging.getLogger(__name__)
 
 # Module-level reference to the Flask app so the job function can push an
 # app context without needing the app passed as an argument.
-_app: Flask | None = None
+_app = None  # type: Optional[Flask]
 
 
-def init_scheduler(app: Flask) -> None:
+def init_scheduler(app):
+    # type: (Flask) -> None
     """
     Initialise and start the APScheduler background scheduler.
 
@@ -33,29 +35,33 @@ def init_scheduler(app: Flask) -> None:
     """
     global _app
 
-    # Process guard: if another worker already set this flag, bail out.
-    if os.environ.get("SCHEDULER_RUNNING"):
-        logger.info("Scheduler already running in another worker — skipping init.")
-        return
+    try:
+        # Process guard: if another worker already set this flag, bail out.
+        if os.environ.get("SCHEDULER_RUNNING"):
+            logger.info("Scheduler already running in another worker — skipping init.")
+            return
 
-    os.environ["SCHEDULER_RUNNING"] = "1"
+        os.environ["SCHEDULER_RUNNING"] = "1"
 
-    _app = app
+        _app = app
 
-    scheduler = APScheduler()
-    app.config["SCHEDULER_API_ENABLED"] = False
-    scheduler.init_app(app)
+        scheduler = APScheduler()
+        app.config["SCHEDULER_API_ENABLED"] = False
+        scheduler.init_app(app)
 
-    scheduler.add_job(
-        id="daily_notification_job",
-        func=daily_notification_job,
-        trigger="cron",
-        hour=8,
-        minute=0,
-    )
+        scheduler.add_job(
+            id="daily_notification_job",
+            func=daily_notification_job,
+            trigger="cron",
+            hour=8,
+            minute=0,
+        )
 
-    scheduler.start()
-    logger.info("APScheduler started — daily notification job scheduled at 08:00.")
+        scheduler.start()
+        logger.info("APScheduler started — daily notification job scheduled at 08:00.")
+
+    except Exception:
+        logger.exception("init_scheduler: failed to start scheduler — app will continue without it.")
 
 
 def daily_notification_job() -> None:
@@ -87,7 +93,7 @@ def daily_notification_job() -> None:
                 return
 
             # Group tasks by user_id
-            tasks_by_user: dict[int, list[Task]] = {}
+            tasks_by_user = {}  # type: dict
             for task in tasks:
                 tasks_by_user.setdefault(task.user_id, []).append(task)
 
@@ -100,7 +106,7 @@ def daily_notification_job() -> None:
                     continue
 
                 # Score and annotate each task
-                scored: list[dict] = []
+                scored = []  # type: list
                 for task in user_tasks:
                     result = calculate_priority_score(
                         task.urgency,

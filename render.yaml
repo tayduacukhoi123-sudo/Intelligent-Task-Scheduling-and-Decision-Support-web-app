@@ -12,6 +12,18 @@ services:
           property: connectionString
       - key: PYTHON_VERSION
         value: 3.10.0
+      - key: MAIL_SERVER
+        sync: false
+      - key: MAIL_PORT
+        sync: false
+      - key: MAIL_USE_TLS
+        sync: false
+      - key: MAIL_USERNAME
+        sync: false
+      - key: MAIL_PASSWORD
+        sync: false
+      - key: MAIL_DEFAULT_SENDER
+        sync: false
 
 databases:
   - name: task-db

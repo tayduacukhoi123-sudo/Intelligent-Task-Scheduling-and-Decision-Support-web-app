@@ -7,6 +7,7 @@ from google.oauth2 import id_token
 from google.auth.transport import requests as google_requests
 from google import genai
 from google.genai import types
+from algorithm import calculate_priority_score, get_eisenhower_quadrant
 
 bp = Blueprint("main", __name__)
 
@@ -179,6 +180,44 @@ def parse_task():
         return jsonify(parsed), 200
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
+@bp.route("/api/notifications", methods=["GET"])
+def get_notifications():
+    user_id = request.args.get("user_id")
+    if not user_id:
+        return jsonify({"error": "user_id required"}), 400
+
+    user = User.query.get(user_id)
+    if not user:
+        return jsonify({"error": "User not found"}), 404
+
+    today_str = datetime.now().strftime("%Y-%m-%d")
+    tasks = Task.query.filter(
+        Task.user_id == user_id,
+        Task.deadline.like(f"{today_str}%"),
+        Task.status == "active"
+    ).all()
+
+    result = []
+    for t in tasks:
+        score_data = calculate_priority_score(t.urgency, t.importance, t.severity, t.deadline)
+        quadrant = get_eisenhower_quadrant(t.urgency, t.importance)
+        result.append({
+            "id": t.id,
+            "title": t.title,
+            "urgency": t.urgency,
+            "importance": t.importance,
+            "severity": t.severity,
+            "deadline": t.deadline,
+            "score": score_data["score"],
+            "normalized_score": score_data["normalized"],
+            "quadrant": quadrant,
+            "tags": json.loads(t.tags) if t.tags else [],
+            "is_notified": t.is_notified,
+        })
+
+    return jsonify(result), 200
+
 
 @bp.route("/api/tasks", methods=["GET"])
 def get_tasks():
@@ -369,4 +408,4 @@ def clear_history():
     for task in completed:
         db.session.delete(task)
     db.session.commit()
-    return jsonify({"message": f"Cleared {count} completed tasks"}), 200
+    return jsonify({"message": f"Cleared {count} completed tasks"}), 200

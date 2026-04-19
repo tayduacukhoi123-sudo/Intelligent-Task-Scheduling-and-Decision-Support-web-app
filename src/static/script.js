@@ -1079,6 +1079,74 @@ async function initQuickAdd() {
 // ---------------------------------------------------------------------------
 // Global initialization
 // ---------------------------------------------------------------------------
+
+function showDueModal(tasks) {
+    let overlay = document.getElementById('dueTasksModal');
+    if (!overlay) {
+        overlay = document.createElement('div');
+        overlay.id = 'dueTasksModal';
+        overlay.className = 'modal-overlay';
+        document.body.appendChild(overlay);
+    }
+
+    const quadrantColors = {
+        'Q1_DO_FIRST':  'var(--q1-do)',
+        'Q2_SCHEDULE':  'var(--q2-schedule)',
+        'Q3_DELEGATE':  'var(--q3-delegate)',
+        'Q4_ELIMINATE': 'var(--q4-eliminate)',
+    };
+
+    const taskItems = tasks.map(task => {
+        const color = quadrantColors[task.quadrant] || 'var(--q4-eliminate)';
+        const quadrantLabel = (task.quadrant || 'UNKNOWN').replace(/_/g, ' ');
+        const score = task.normalized_score != null ? Number(task.normalized_score).toFixed(2) : 'N/A';
+        return `
+            <div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);">
+                <span style="font-weight:600;flex:1;">${task.title}</span>
+                <span style="background:${color};color:#fff;border-radius:6px;padding:2px 8px;font-size:0.75rem;white-space:nowrap;">${quadrantLabel}</span>
+                <span style="font-size:0.8rem;color:var(--text-secondary);white-space:nowrap;"><i class="ph ph-star"></i> ${score}</span>
+            </div>`;
+    }).join('');
+
+    overlay.innerHTML = `
+        <div class="modal-content">
+            <div class="modal-icon"><i class="ph ph-bell-ringing"></i></div>
+            <h3 class="modal-title">You have ${tasks.length} task(s) due today!</h3>
+            <p class="modal-message" style="margin-bottom:8px;">Don't forget to tackle these:</p>
+            <div style="width:100%;max-height:260px;overflow-y:auto;margin-bottom:16px;">
+                ${taskItems}
+            </div>
+            <div class="modal-actions">
+                <button class="modal-btn btn-confirm-delete" id="dueModalDismiss">Got it!</button>
+            </div>
+        </div>
+    `;
+
+    document.getElementById('dueModalDismiss').onclick = () => {
+        overlay.classList.remove('active');
+        setTimeout(() => overlay.remove(), 300);
+    };
+
+    // Show with small delay for animation
+    setTimeout(() => overlay.classList.add('active'), 10);
+}
+
+async function checkDueNotifications() {
+    try {
+        const res = await fetch(`${API_BASE}/api/notifications?user_id=${getUserId()}`);
+        if (!res.ok) {
+            console.warn('Notification check failed: HTTP', res.status);
+            return;
+        }
+        const tasks = await res.json();
+        if (tasks.length > 0) {
+            showDueModal(tasks);
+        }
+    } catch (err) {
+        console.warn('Notification check failed:', err);
+    }
+}
+
 document.addEventListener('DOMContentLoaded', () => {
     if (!requireAuth()) return;
 
@@ -1089,5 +1157,6 @@ document.addEventListener('DOMContentLoaded', () => {
     else {
         renderDashboard();
         initQuickAdd();
+        checkDueNotifications();
     }
 });

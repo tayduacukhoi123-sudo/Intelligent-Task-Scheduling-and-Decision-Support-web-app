@@ -5,6 +5,7 @@ services:
     buildCommand: "pip install -r requirements.txt && flask db upgrade"
     startCommand: "gunicorn app:app"
     rootDir: src
+    # Auto-deploy trigger
     envVars:
       - key: DATABASE_URL
         fromDatabase:

@@ -184,53 +184,68 @@ def parse_task():
 @bp.route("/api/debug-notifications", methods=["GET"])
 def debug_notifications():
     """Temporary debug endpoint — shows today's date and all tasks for a user."""
-    user_id = request.args.get("user_id")
-    if not user_id:
-        return jsonify({"error": "user_id required"}), 400
-    today_str = datetime.now().strftime("%Y-%m-%d")
-    all_tasks = Task.query.filter_by(user_id=user_id, status="active").all()
-    return jsonify({
-        "today": today_str,
-        "all_active_deadlines": [t.deadline for t in all_tasks],
-        "matching_today": [t.deadline for t in all_tasks if t.deadline.startswith(today_str)]
-    }), 200
+    try:
+        user_id = request.args.get("user_id")
+        if not user_id:
+            return jsonify({"error": "user_id required"}), 400
+        try:
+            user_id_int = int(user_id)
+        except ValueError:
+            return jsonify({"error": "user_id must be an integer"}), 400
+        today_str = datetime.now().strftime("%Y-%m-%d")
+        all_tasks = Task.query.filter_by(user_id=user_id_int, status="active").all()
+        return jsonify({
+            "today": today_str,
+            "all_active_deadlines": [t.deadline for t in all_tasks],
+            "matching_today": [t.deadline for t in all_tasks if t.deadline and t.deadline.startswith(today_str)]
+        }), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 @bp.route("/api/notifications", methods=["GET"])
 def get_notifications():
-    user_id = request.args.get("user_id")
-    if not user_id:
-        return jsonify({"error": "user_id required"}), 400
+    try:
+        user_id = request.args.get("user_id")
+        if not user_id:
+            return jsonify({"error": "user_id required"}), 400
 
-    user = User.query.get(user_id)
-    if not user:
-        return jsonify({"error": "User not found"}), 404
+        try:
+            user_id_int = int(user_id)
+        except ValueError:
+            return jsonify({"error": "user_id must be an integer"}), 400
 
-    today_str = datetime.now().strftime("%Y-%m-%d")
-    tasks = Task.query.filter(
-        Task.user_id == user_id,
-        Task.deadline.like(f"{today_str}%"),
-        Task.status == "active"
-    ).all()
+        user = User.query.filter_by(id=user_id_int).first()
+        if not user:
+            return jsonify({"error": "User not found"}), 404
 
-    result = []
-    for t in tasks:
-        score_data = calculate_priority_score(t.urgency, t.importance, t.severity, t.deadline)
-        quadrant = get_eisenhower_quadrant(t.urgency, t.importance)
-        result.append({
-            "id": t.id,
-            "title": t.title,
-            "urgency": t.urgency,
-            "importance": t.importance,
-            "severity": t.severity,
-            "deadline": t.deadline,
-            "score": score_data["score"],
-            "normalized_score": score_data["normalized"],
-            "quadrant": quadrant,
-            "tags": json.loads(t.tags) if t.tags else [],
-            "is_notified": t.is_notified,
-        })
+        today_str = datetime.now().strftime("%Y-%m-%d")
 
-    return jsonify(result), 200
+        # Fetch all active tasks for user then filter in Python
+        # (avoids LIKE operator issues across SQLite/PostgreSQL)
+        all_tasks = Task.query.filter_by(user_id=user_id_int, status="active").all()
+        tasks = [t for t in all_tasks if t.deadline and t.deadline.startswith(today_str)]
+
+        result = []
+        for t in tasks:
+            score_data = calculate_priority_score(t.urgency, t.importance, t.severity, t.deadline)
+            quadrant = get_eisenhower_quadrant(t.urgency, t.importance)
+            result.append({
+                "id": t.id,
+                "title": t.title,
+                "urgency": t.urgency,
+                "importance": t.importance,
+                "severity": t.severity,
+                "deadline": t.deadline,
+                "score": score_data["score"],
+                "normalized_score": score_data["normalized"],
+                "quadrant": quadrant,
+                "tags": json.loads(t.tags) if t.tags else [],
+                "is_notified": t.is_notified,
+            })
+
+        return jsonify(result), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 
 @bp.route("/api/tasks", methods=["GET"])

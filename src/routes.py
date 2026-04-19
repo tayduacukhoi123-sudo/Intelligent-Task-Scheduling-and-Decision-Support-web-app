@@ -181,6 +181,20 @@ def parse_task():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
+@bp.route("/api/debug-notifications", methods=["GET"])
+def debug_notifications():
+    """Temporary debug endpoint — shows today's date and all tasks for a user."""
+    user_id = request.args.get("user_id")
+    if not user_id:
+        return jsonify({"error": "user_id required"}), 400
+    today_str = datetime.now().strftime("%Y-%m-%d")
+    all_tasks = Task.query.filter_by(user_id=user_id, status="active").all()
+    return jsonify({
+        "today": today_str,
+        "all_active_deadlines": [t.deadline for t in all_tasks],
+        "matching_today": [t.deadline for t in all_tasks if t.deadline.startswith(today_str)]
+    }), 200
+
 @bp.route("/api/notifications", methods=["GET"])
 def get_notifications():
     user_id = request.args.get("user_id")

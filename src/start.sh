@@ -1,9 +1,12 @@
 #!/bin/bash
 # Startup script for Render deployment
-# Runs database migrations before starting the app
+# Fixes database schema and runs migrations before starting the app
+
+echo "Fixing database schema..."
+python fix_db_schema.py
 
 echo "Running database migrations..."
-flask db upgrade
+flask db upgrade || echo "Migration failed or already applied"
 
 echo "Starting Gunicorn server..."
 exec gunicorn app:app

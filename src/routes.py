@@ -438,3 +438,61 @@ def clear_history():
         db.session.delete(task)
     db.session.commit()
     return jsonify({"message": f"Cleared {count} completed tasks"}), 200
+
+@bp.route("/api/test-email", methods=["POST"])
+def test_email():
+    """Test endpoint to manually trigger email notification"""
+    from datetime import date
+    from mail_service import send_notification_email
+    
+    data = request.get_json() or {}
+    user_id = data.get("user_id")
+    
+    if not user_id:
+        return jsonify({"error": "user_id required"}), 400
+    
+    try:
+        user_id_int = int(user_id)
+    except ValueError:
+        return jsonify({"error": "user_id must be an integer"}), 400
+    
+    user = User.query.filter_by(id=user_id_int).first()
+    if not user:
+        return jsonify({"error": "User not found"}), 404
+    
+    today_str = date.today().isoformat()
+    
+    # Find tasks due today
+    all_tasks = Task.query.filter_by(user_id=user_id_int, status="active").all()
+    tasks = [t for t in all_tasks if t.deadline and t.deadline.startswith(today_str)]
+    
+    if not tasks:
+        return jsonify({"message": "No tasks due today to send"}), 200
+    
+    # Score and sort tasks
+    scored = []
+    for task in tasks:
+        result = calculate_priority_score(task.urgency, task.importance, task.severity, task.deadline)
+        quadrant = get_eisenhower_quadrant(task.urgency, task.importance)
+        scored.append({
+            "title": task.title,
+            "score": result["score"],
+            "normalized": result["normalized"],
+            "quadrant": quadrant,
+            "deadline": task.deadline,
+        })
+    
+    scored.sort(key=lambda d: d["score"], reverse=True)
+    
+    # Send email
+    success = send_notification_email(user.email, user.name, scored)
+    
+    if success:
+        return jsonify({
+            "message": f"Email sent successfully to {user.email}",
+            "tasks_count": len(scored)
+        }), 200
+    else:
+        return jsonify({
+            "error": "Failed to send email. Check SMTP configuration and Render logs."
+        }), 500

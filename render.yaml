@@ -2,10 +2,10 @@ services:
   - type: web
     name: task-priority-manager
     runtime: python
-    buildCommand: "pip install -r requirements.txt && flask db upgrade"
-    startCommand: "gunicorn app:app"
+    buildCommand: "pip install -r requirements.txt"
+    startCommand: "bash start.sh"
     rootDir: src
-    # Auto-deploy trigger
+    # Auto-deploy trigger - migrations run in start.sh
     envVars:
       - key: DATABASE_URL
         fromDatabase:

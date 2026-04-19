@@ -53,12 +53,12 @@ def init_scheduler(app):
             id="daily_notification_job",
             func=daily_notification_job,
             trigger="cron",
-            hour=16,
+            hour=9,
             minute=10,
         )
 
         scheduler.start()
-        logger.info("APScheduler started — daily notification job scheduled at 08:00.")
+        logger.info("APScheduler started — daily notification job scheduled at 09:10 UTC (16:10 Vietnam time).")
 
     except Exception:
         logger.exception("init_scheduler: failed to start scheduler — app will continue without it.")

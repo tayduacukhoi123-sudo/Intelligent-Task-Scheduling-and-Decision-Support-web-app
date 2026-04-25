@@ -427,12 +427,34 @@ async function loadTaskForEdit(taskId) {
 
 // Global Edit Handler
 window.editTask = async (taskId) => {
-    if (window.location.pathname.includes('task.html')) {
-        clearAllFieldErrors();
-        await loadTaskForEdit(taskId);
-        showToast('warning', 'Editing Task', 'Modify the fields above and click Update Task.');
+    if (window.location.pathname === '/' || window.location.pathname === '/index.html') {
+        const manualCard = document.getElementById('manualCard');
+        if (!manualCard) return;
+
+        try {
+            const t = await fetchTask(taskId);
+            editingManualTaskId = taskId;
+            
+            // Populate and Show Manual Card
+            manualCard.classList.add('active');
+            manualCard.scrollIntoView({ behavior: 'smooth' });
+            
+            document.querySelector('#manualCard .verification-header span').innerText = 'Edit Task';
+            document.getElementById('mConfirm').innerHTML = 'Update Task <i class="ph ph-check"></i>';
+            
+            document.getElementById('mName').value = t.title;
+            document.getElementById('mUrgency').value = t.urgency;
+            document.getElementById('mImportance').value = t.importance;
+            document.getElementById('mSeverity').value = t.severity;
+            document.getElementById('mDuration').value = t.duration_minutes || '30';
+            document.getElementById('mDate').value = formatDateForInput(t.deadline);
+            
+            showToast('warning', 'Editing Task', `Modifying "${t.title}"...`);
+        } catch (err) {
+            showToast('error', 'Load Failed', err.message);
+        }
     } else {
-        window.location.href = `/task.html?edit=${taskId}`;
+        window.location.href = `/?edit=${taskId}`;
     }
 };
 
@@ -441,6 +463,7 @@ window.editTask = async (taskId) => {
 // ---------------------------------------------------------------------------
 let allActiveTasks = [];
 let searchQuery = "";
+let editingManualTaskId = null;
 
 // Calendar State
 let currentViewDate = new Date();
@@ -491,7 +514,7 @@ function updateDashboardUI() {
     const top3 = filtered.slice(0, 3);
 
     if (top3.length === 0) {
-        listContainer.innerHTML = `<p style="color:var(--text-muted)">${searchQuery ? 'No matching tasks found.' : 'No active tasks. <a href="/task.html" style="color:var(--primary)">Add one!</a>'}</p>`;
+        listContainer.innerHTML = `<p style="color:var(--text-muted)">${searchQuery ? 'No matching tasks found.' : 'No active tasks. <a href="javascript:void(0)" onclick="document.getElementById(\'manualAddBtn\').click()" style="color:var(--primary)">Add one!</a>'}</p>`;
         return;
     }
     listContainer.innerHTML = top3.map(t => taskItemHTML(t)).join('');
@@ -1137,9 +1160,12 @@ async function initQuickAdd() {
             // Hide AI card if open
             document.getElementById('verificationCard').classList.remove('active');
             
-            // Toggle Manual Card
             manualCard.classList.toggle('active');
             if (manualCard.classList.contains('active')) {
+                editingManualTaskId = null; // New task
+                document.querySelector('#manualCard .verification-header span').innerText = 'Manual Task Creation';
+                document.getElementById('mConfirm').innerHTML = 'Create Task <i class="ph ph-plus"></i>';
+                
                 manualCard.scrollIntoView({ behavior: 'smooth' });
                 // Reset fields
                 document.getElementById('mName').value = '';
@@ -1157,6 +1183,7 @@ async function initQuickAdd() {
 
         document.getElementById('mCancel').addEventListener('click', () => {
             manualCard.classList.remove('active');
+            editingManualTaskId = null;
         });
 
         document.getElementById('mConfirm').addEventListener('click', async () => {
@@ -1174,20 +1201,53 @@ async function initQuickAdd() {
 
             const confirmBtn = document.getElementById('mConfirm');
             confirmBtn.disabled = true;
-            confirmBtn.innerHTML = '<i class="ph ph-spinner"></i> Creating...';
+            confirmBtn.innerHTML = '<i class="ph ph-spinner"></i> Saving...';
 
             try {
-                await createTaskAPI(title, urgency, importance, severity, deadline, duration, []);
-                showToast('success', 'Task Created', `"${title}" has been added.`);
+                const taskData = {
+                    title,
+                    urgency: parseInt(urgency),
+                    importance: parseInt(importance),
+                    severity: parseInt(severity),
+                    duration_minutes: parseInt(duration),
+                    deadline
+                };
+
+                if (editingManualTaskId) {
+                    await updateTaskAPI(editingManualTaskId, taskData);
+                    showToast('success', 'Task Updated', `"${title}" has been updated.`);
+                } else {
+                    await createTaskAPI(title, urgency, importance, severity, deadline, duration, []);
+                    showToast('success', 'Task Created', `"${title}" has been added.`);
+                }
+                
                 manualCard.classList.remove('active');
+                editingManualTaskId = null;
                 renderDashboard();
             } catch (err) {
-                showToast('error', 'Creation Failed', err.message);
+                showToast('error', 'Save Failed', err.message);
             } finally {
                 confirmBtn.disabled = false;
-                confirmBtn.innerHTML = 'Create Task <i class="ph ph-plus"></i>';
+                confirmBtn.innerHTML = editingManualTaskId ? 'Update Task <i class="ph ph-check"></i>' : 'Create Task <i class="ph ph-plus"></i>';
             }
         });
+    }
+
+    // Check for query params (edit or add) on dashboard load
+    if (window.location.pathname === '/' || window.location.pathname === '/index.html') {
+        const params = new URLSearchParams(window.location.search);
+        const editId = params.get('edit');
+        const add = params.get('add');
+        
+        if (editId) {
+            // Wait slightly for dashboard to load then trigger edit
+            setTimeout(() => window.editTask(editId), 500);
+            // Clean URL
+            window.history.replaceState({}, document.title, window.location.pathname);
+        } else if (add) {
+            setTimeout(() => document.getElementById('manualAddBtn')?.click(), 500);
+            window.history.replaceState({}, document.title, window.location.pathname);
+        }
     }
 }
 

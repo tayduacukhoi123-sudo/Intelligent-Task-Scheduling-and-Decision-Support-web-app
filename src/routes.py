@@ -401,9 +401,16 @@ def update_task(task_id):
     if errors:
         return jsonify({"error": errors[0], "errors": errors}), 422
 
-    # Update status
+    # Update status and completed_at
     if "status" in data:
-        task.status = data["status"]
+        old_status = task.status
+        new_status = data["status"]
+        task.status = new_status
+        
+        if new_status == "completed" and old_status != "completed":
+            task.completed_at = datetime.utcnow()
+        elif new_status != "completed":
+            task.completed_at = None
     
     # Update other fields
     if "title" in data: task.title = data["title"].strip()
@@ -496,3 +503,121 @@ def test_email():
         return jsonify({
             "error": "Failed to send email. Check SMTP configuration and Render logs."
         }), 500
+
+@bp.route("/api/performance-metrics", methods=["GET"])
+def get_performance_metrics():
+    user_id = request.args.get("user_id")
+    if not user_id:
+        return jsonify({"error": "user_id required"}), 400
+    
+    try:
+        user_id_int = int(user_id)
+        now = datetime.utcnow()
+        three_days_ago = now - timedelta(days=3)
+        
+        # Define 3-day window tasks (due in the last 3 days)
+        # We'll use tasks with deadlines between (today - 2) and today
+        today_date = now.date()
+        window_start = today_date - timedelta(days=2)
+        window_end = today_date
+        
+        # Fetch all tasks for the user
+        all_tasks = Task.query.filter_by(user_id=user_id_int).all()
+        
+        def get_ws(t):
+            return (t.urgency * 0.3 + t.importance * 0.4 + t.severity * 0.3) * 10
+
+        def parse_deadline(d_str):
+            try:
+                if 'T' in d_str: return datetime.fromisoformat(d_str.replace("Z", "+00:00")).replace(tzinfo=None)
+                return datetime.strptime(d_str, "%Y-%m-%d")
+            except: return None
+
+        # 1. Completion & Agility
+        # Tasks in the 3-day window (by deadline)
+        window_tasks = []
+        for t in all_tasks:
+            d = parse_deadline(t.deadline)
+            if d and window_start <= d.date() <= window_end:
+                window_tasks.append(t)
+        
+        total_ws = sum(get_ws(t) for t in window_tasks)
+        completed_ws = sum(get_ws(t) for t in window_tasks if t.status == "completed")
+        
+        completion = (completed_ws / total_ws * 300) if total_ws > 0 else 0
+        agility = (len([t for t in window_tasks if t.status == "completed"]) / len(window_tasks) * 300) if window_tasks else 0
+
+        # 2. Flexibility
+        # Flex = 150 + EarlyBonus + SmartInterleave - SevereDelayPenalty
+        flex = 150
+        
+        # Early Bonus & Severe Delay Penalty
+        early_bonus = 0
+        delay_penalty = 0
+        penalty_count = 0
+        
+        completed_tasks = [t for t in all_tasks if t.status == "completed" and t.completed_at and t.completed_at >= three_days_ago]
+        
+        for t in completed_tasks:
+            d = parse_deadline(t.deadline)
+            if not d: continue
+            
+            ws = get_ws(t)
+            
+            # Early Bonus
+            if t.completed_at.date() < d.date():
+                days_early = (d.date() - t.completed_at.date()).days
+                contribution = days_early * (ws / 100) * 15
+                early_bonus += min(40, contribution)
+            
+            # Severe Delay Penalty
+            if ws >= 80:
+                days_late = (t.completed_at.date() - d.date()).days
+                if days_late >= 2 and penalty_count < 4:
+                    delay_penalty += 20
+                    penalty_count += 1
+        
+        early_bonus = min(100, early_bonus)
+        flex += early_bonus
+        flex -= min(80, delay_penalty)
+        
+        # Smart Interleave
+        # Pairs (A, B) where A completed before B, but A due after B.
+        # A is smart: ws >= 70 or duration <= 60
+        smart_bonus = 0
+        pairs_count = 0
+        
+        # Sort by actual completion time
+        sorted_completed = sorted(completed_tasks, key=lambda x: x.completed_at)
+        
+        for i in range(len(sorted_completed)):
+            a = sorted_completed[i]
+            a_due = parse_deadline(a.deadline)
+            if not a_due: continue
+            
+            # Check if A is "smart"
+            is_smart = get_ws(a) >= 70 or (a.duration_minutes and a.duration_minutes <= 60)
+            if not is_smart: continue
+            
+            for j in range(i + 1, len(sorted_completed)):
+                b = sorted_completed[j]
+                b_due = parse_deadline(b.deadline)
+                if not b_due: continue
+                
+                if a_due.date() > b_due.date():
+                    pairs_count += 1
+                    if pairs_count <= 20:
+                        smart_bonus += 4
+        
+        flex += min(80, smart_bonus)
+        flex = max(0, min(300, flex))
+
+        return jsonify({
+            "completion": round(completion, 1),
+            "agility": round(agility, 1),
+            "flex": round(flex, 1),
+            "window": f"{window_start} to {window_end}"
+        }), 200
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500

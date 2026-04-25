@@ -470,6 +470,7 @@ async function renderDashboard() {
 
         updateDashboardUI();
         updateProgress();
+        renderPerformanceMetrics();
     } catch (err) {
         listContainer.innerHTML = `<p style="color:#fca5a5"><i class="ph ph-warning-circle"></i> Could not load tasks: ${err.message}</p>`;
     }
@@ -516,6 +517,57 @@ async function updateProgress() {
     } catch (err) {
         console.error("Progress update failed:", err);
     }
+}
+
+async function renderPerformanceMetrics() {
+    const containers = ['completion', 'agility', 'flex'];
+    const userId = getUserId();
+    if (!userId) return;
+
+    try {
+        const res = await fetch(`${API_BASE}/api/performance-metrics?user_id=${userId}`);
+        if (!res.ok) throw new Error('Metrics failed');
+        const data = await res.json();
+
+        createGaugeChart('completionGauge', data.completion, '#8b5cf6'); // Purple
+        document.getElementById('completionValue').innerText = data.completion;
+
+        createGaugeChart('agilityGauge', data.agility, '#06b6d4'); // Cyan
+        document.getElementById('agilityValue').innerText = data.agility;
+
+        createGaugeChart('flexGauge', data.flex, '#f59e0b'); // Amber
+        document.getElementById('flexValue').innerText = data.flex;
+
+    } catch (err) {
+        console.error("Performance metrics failed:", err);
+    }
+}
+
+function createGaugeChart(containerId, value, color) {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+
+    // Clear existing SVG if any
+    const existing = container.querySelector('svg');
+    if (existing) existing.remove();
+
+    const size = 140;
+    const strokeWidth = 8;
+    const radius = (size - strokeWidth) / 2;
+    const circumference = 2 * Math.PI * radius;
+    
+    // Normalize value to percentage of 300
+    const percentage = Math.min(100, (value / 300) * 100);
+    const offset = circumference - (percentage / 100) * circumference;
+
+    const svg = `
+        <svg class="gauge-svg" width="${size}" height="${size}">
+            <circle class="gauge-bg" cx="${size/2}" cy="${size/2}" r="${radius}" />
+            <circle class="gauge-fill" cx="${size/2}" cy="${size/2}" r="${radius}" 
+                style="stroke: ${color}; stroke-dasharray: ${circumference}; stroke-dashoffset: ${offset};" />
+        </svg>
+    `;
+    container.insertAdjacentHTML('afterbegin', svg);
 }
 
 async function renderTaskPage() {
@@ -814,9 +866,10 @@ async function renderHistory() {
         }
         tbody.innerHTML = tasks.map(t => {
             const res = calculatePriorityScore(t.urgency, t.importance, t.severity, t.deadline);
+            const compDate = t.completed_at ? formatDeadline(t.completed_at) : 'N/A';
             return `
             <tr>
-                <td>${formatDeadline(t.deadline)}</td>
+                <td>${compDate}</td>
                 <td style="font-weight: 500; color: white;">${t.title}</td>
                 <td><span class="task-score score-medium">${res.score} pts</span></td>
                 <td><span class="badge badge-success">Completed</span></td>

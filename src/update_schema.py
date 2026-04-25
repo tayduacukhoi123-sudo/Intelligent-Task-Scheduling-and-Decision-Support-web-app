@@ -11,7 +11,7 @@ def main():
     if database_url.startswith("postgres://"):
         database_url = database_url.replace("postgres://", "postgresql://", 1)
     
-    print(f"Connecting to database at {database_url}...")
+    print(f"Connecting to database...")
     engine = create_engine(database_url)
     
     with engine.connect() as conn:
@@ -25,9 +25,13 @@ def main():
         if 'completed_at' not in columns:
             print("Adding 'completed_at' column...")
             try:
-                conn.execute(text("ALTER TABLE task ADD COLUMN completed_at DATETIME"))
+                # Detect database type
+                is_postgres = 'postgresql' in database_url
+                column_type = "TIMESTAMP" if is_postgres else "DATETIME"
+                
+                conn.execute(text(f"ALTER TABLE task ADD COLUMN completed_at {column_type}"))
                 conn.commit()
-                print("DONE: Added 'completed_at' column")
+                print(f"DONE: Added 'completed_at' column as {column_type}")
             except Exception as e:
                 print(f"Error adding column: {e}")
         else:

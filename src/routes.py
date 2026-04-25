@@ -2,7 +2,7 @@ import os
 import json
 from flask import Blueprint, jsonify, request, render_template
 from models import db, User, Task, Schedule
-from datetime import datetime
+from datetime import datetime, timedelta
 from google.oauth2 import id_token
 from google.auth.transport import requests as google_requests
 from google import genai

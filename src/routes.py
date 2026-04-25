@@ -181,8 +181,8 @@ def parse_task():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-@bp.route("/api/test-email", methods=["POST"])
-def test_email():
+@bp.route("/api/verify-email", methods=["POST"])
+def verify_email_config():
     """Endpoint to test SMTP configuration by sending a simple test email."""
     try:
         from extensions import mail

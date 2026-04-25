@@ -1322,6 +1322,17 @@ async function checkDueNotifications() {
     }
 }
 
+document.addEventListener('DOMContentLoaded', () => {
+    if (!requireAuth()) return;
+
+    const path = window.location.pathname;
+    if (path.includes('task.html')) renderTaskPage();
+    else if (path.includes('schedule.html')) renderSchedule();
+    else if (path.includes('history.html')) renderHistory();
+    else {
+        renderDashboard();
+        initQuickAdd();
+        checkDueNotifications();
     }
 });
 
@@ -1340,7 +1351,7 @@ window.testEmail = async () => {
     }
 
     try {
-        const res = await fetch(`${API_BASE}/api/test-email`, {
+        const res = await fetch(`${API_BASE}/api/verify-email`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ email: userEmail })

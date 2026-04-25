@@ -504,7 +504,8 @@ async function updateProgress() {
 
     try {
         const allTasks = await fetchTasks();
-        const todayStr = new Date().toISOString().split('T')[0];
+        const now = new Date();
+        const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
 
         const todayTasks = allTasks.filter(t => t.deadline.startsWith(todayStr));
         const completedToday = todayTasks.filter(t => t.status === 'completed').length;
@@ -710,7 +711,7 @@ async function renderSchedule() {
         renderCalendar();
 
         // Filter tasks for the SELECTED day
-        const dayStr = selectedDate.toISOString().split('T')[0];
+        const dayStr = `${selectedDate.getFullYear()}-${String(selectedDate.getMonth() + 1).padStart(2, '0')}-${String(selectedDate.getDate()).padStart(2, '0')}`;
         const dayTasks = allActiveTasks.filter(t => t.deadline.startsWith(dayStr));
         
         // Clear containers again for rendering

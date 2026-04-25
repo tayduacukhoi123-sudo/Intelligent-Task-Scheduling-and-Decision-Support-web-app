@@ -1,121 +1,70 @@
 """
-Mock data generation script for Function 2 (Performance Metrics).
-Generates tasks over the last 3 days with varied completion statuses to test 
-Completion, Agility, and Flexibility scores.
+Comprehensive Mock Data for Performance & Calendar Testing.
+- Last 3 Days: Completed tasks with varied scores (Bonus/Penalty).
+- Next 3 Days: Active tasks to test calendar dots and priority.
 """
 import os
-import json
 from datetime import datetime, timedelta
 from app import create_app
 from models import db, User, Task
 
-def seed_mock_data():
+def seed_comprehensive_data():
     app = create_app()
     with app.app_context():
-        # 1. Identify Test User
-        user = User.query.first()
+        user = User.query.filter_by(email='tayduacukhoi123@gmail.com').first()
         if not user:
-            print("No users found. Please log in to the app first.")
+            print("User not found.")
             return
         
-        print(f"Seeding mock performance data for user: {user.email}")
-        
-        # 2. Clear previous tasks to have a clean 3-day window
+        print(f"Seeding comprehensive test data for: {user.email}")
         Task.query.filter_by(user_id=user.id).delete()
         
         now = datetime.utcnow()
-        today = now.replace(hour=12, minute=0, second=0, microsecond=0)
-        yesterday = today - timedelta(days=1)
-        day_before = today - timedelta(days=2)
-        tomorrow = today + timedelta(days=1)
-
         def f_date(dt): return dt.strftime('%Y-%m-%d %H:%M:%S')
 
-        # 3. Create Mock Tasks
-        mock_tasks = [
-            # --- DAY BEFORE YESTERDAY ---
-            # Task 1: Completed on time
-            {
-                "title": "Task A (Day-2): On Time",
-                "urgency": 8, "importance": 8, "severity": 8, # Weighted Score: 80
-                "deadline": f_date(day_before + timedelta(hours=4)),
-                "status": "completed",
-                "completed_at": day_before + timedelta(hours=2),
-                "duration_minutes": 60
-            },
-            # Task 2: Severe Delay Penalty (Late >= 2 days)
-            # Actually, to be late 2 days in a 3-day window, it must have been due long ago.
-            # Let's say it was due 3 days ago, completed yesterday.
-            {
-                "title": "Task B (Penalty): Severe Late",
-                "urgency": 9, "importance": 9, "severity": 9, # Weighted Score: 90
-                "deadline": f_date(now - timedelta(days=4)),
-                "status": "completed",
-                "completed_at": yesterday,
-                "duration_minutes": 120
-            },
-            
-            # --- YESTERDAY ---
-            # Task 3: Early Bonus (completed 1 day early)
-            {
-                "title": "Task C (Bonus): Early Bird",
-                "urgency": 7, "importance": 6, "severity": 5, # Weighted Score: 61
-                "deadline": f_date(today),
-                "status": "completed",
-                "completed_at": yesterday,
-                "duration_minutes": 45
-            },
-            # Task 4: Smart Interleave (Task D due tomorrow, Task E due today)
-            # We complete D then E.
-            {
-                "title": "Task D (Smart): Interleaved",
-                "urgency": 8, "importance": 7, "severity": 6, # Weighted Score: 71 (Smart >= 70)
-                "deadline": f_date(tomorrow),
-                "status": "completed",
-                "completed_at": yesterday + timedelta(hours=2),
-                "duration_minutes": 30
-            },
-            {
-                "title": "Task E: Standard",
-                "urgency": 5, "importance": 5, "severity": 5, # Weighted Score: 50
-                "deadline": f_date(yesterday + timedelta(hours=5)),
-                "status": "completed",
-                "completed_at": yesterday + timedelta(hours=4),
-                "duration_minutes": 90
-            },
-            
-            # --- TODAY ---
-            # Task 6: Completed Today
-            {
-                "title": "Task F: Done Today",
-                "urgency": 6, "importance": 8, "severity": 7, # Weighted Score: 71
-                "deadline": f_date(today + timedelta(hours=2)),
-                "status": "completed",
-                "completed_at": now - timedelta(minutes=30),
-                "duration_minutes": 120
-            },
-            # Task 7: Active (Incomplete)
-            {
-                "title": "Task G: Pending Today",
-                "urgency": 10, "importance": 10, "severity": 10, # Weighted Score: 100
-                "deadline": f_date(today + timedelta(hours=5)),
-                "status": "active",
-                "duration_minutes": 180
-            }
-        ]
+        tasks = []
+        
+        # --- PAST 3 DAYS (Completed) ---
+        # 2 Days Ago (3 tasks)
+        d2 = now - timedelta(days=2)
+        tasks.append({"title": "Finished Report (Early)", "urgency": 8, "importance": 9, "severity": 7, "deadline": f_date(d2 + timedelta(days=1)), "status": "completed", "completed_at": d2, "duration_minutes": 60})
+        tasks.append({"title": "Team Sync (On Time)", "urgency": 5, "importance": 5, "severity": 5, "deadline": f_date(d2 + timedelta(hours=2)), "status": "completed", "completed_at": d2, "duration_minutes": 30})
+        tasks.append({"title": "Budget Review (Late)", "urgency": 9, "importance": 10, "severity": 8, "deadline": f_date(d2 - timedelta(days=2)), "status": "completed", "completed_at": d2, "duration_minutes": 120})
 
-        for t_data in mock_tasks:
+        # Yesterday (3 tasks)
+        yest = now - timedelta(days=1)
+        # Smart Interleave Pair: Task A (due tomorrow) done before Task B (due yesterday)
+        tasks.append({"title": "Smart Task A (Interleave)", "urgency": 8, "importance": 8, "severity": 8, "deadline": f_date(now + timedelta(days=1)), "status": "completed", "completed_at": yest - timedelta(hours=2), "duration_minutes": 45})
+        tasks.append({"title": "Basic Task B", "urgency": 4, "importance": 4, "severity": 4, "deadline": f_date(yest), "status": "completed", "completed_at": yest, "duration_minutes": 60})
+        tasks.append({"title": "Email Catchup", "urgency": 3, "importance": 6, "severity": 4, "deadline": f_date(yest + timedelta(hours=5)), "status": "completed", "completed_at": yest + timedelta(hours=1), "duration_minutes": 90})
+
+        # Today (2 completed)
+        tasks.append({"title": "UI Bug Fix (Today Win)", "urgency": 10, "importance": 7, "severity": 9, "deadline": f_date(now), "status": "completed", "completed_at": now - timedelta(hours=2), "duration_minutes": 30})
+        tasks.append({"title": "Documentation", "urgency": 4, "importance": 8, "severity": 5, "deadline": f_date(now + timedelta(hours=4)), "status": "completed", "completed_at": now - timedelta(minutes=15), "duration_minutes": 60})
+
+        # --- NEXT 3 DAYS (Active) ---
+        # Tomorrow (2 tasks)
+        tomorrow = now + timedelta(days=1)
+        tasks.append({"title": "Project Pitch (Q1)", "urgency": 10, "importance": 10, "severity": 9, "deadline": f_date(tomorrow + timedelta(hours=2)), "status": "active", "duration_minutes": 60})
+        tasks.append({"title": "Grocery Run (Q3)", "urgency": 7, "importance": 3, "severity": 2, "deadline": f_date(tomorrow + timedelta(hours=8)), "status": "active", "duration_minutes": 45})
+
+        # Day After Tomorrow (2 tasks)
+        dat = now + timedelta(days=2)
+        tasks.append({"title": "Deep Work (Q2)", "urgency": 4, "importance": 9, "severity": 6, "deadline": f_date(dat + timedelta(hours=3)), "status": "active", "duration_minutes": 180})
+        tasks.append({"title": "Leisure Read (Q4)", "urgency": 2, "importance": 2, "severity": 1, "deadline": f_date(dat + timedelta(hours=6)), "status": "active", "duration_minutes": 120})
+
+        # 3 Days From Now (1 task)
+        d3 = now + timedelta(days=3)
+        tasks.append({"title": "Upcoming Meeting", "urgency": 6, "importance": 6, "severity": 6, "deadline": f_date(d3), "status": "active", "duration_minutes": 60})
+
+        for t_data in tasks:
             comp_at = t_data.pop('completed_at', None)
             task = Task(user_id=user.id, **t_data)
             task.completed_at = comp_at
             db.session.add(task)
         
         db.session.commit()
-        print(f"Successfully seeded {len(mock_tasks)} mock tasks for performance testing.")
-        print("Metrics Expectation:")
-        print("- Completion: Partial (Task G is active)")
-        print("- Agility: Partial (Task G is active)")
-        print("- Flexibility: Should have Early Bonus and Smart Interleave Bonus, but also a Delay Penalty.")
+        print(f"Successfully seeded {len(tasks)} tasks spanning 6 days.")
 
 if __name__ == "__main__":
-    seed_mock_data()
+    seed_comprehensive_data()

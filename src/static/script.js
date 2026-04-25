@@ -299,8 +299,9 @@ function calculatePriorityScore(u, i, s, deadlineStr) {
     if (!deadlineStr) return { score: 0, daysRemaining: 0, totalHours: 0 };
 
     const now = new Date();
-    // Support both YYYY-MM-DD and YYYY-MM-DDTHH:MM
-    const deadline = new Date(deadlineStr.includes('T') ? deadlineStr : deadlineStr + 'T00:00:00');
+    // Normalize format: replace space with T if needed
+    const normalizedStr = deadlineStr.replace(' ', 'T');
+    const deadline = new Date(normalizedStr.includes('T') ? normalizedStr : normalizedStr + 'T00:00:00');
     
     if (isNaN(deadline.getTime())) {
         return { score: 0, daysRemaining: 0, totalHours: 0 };

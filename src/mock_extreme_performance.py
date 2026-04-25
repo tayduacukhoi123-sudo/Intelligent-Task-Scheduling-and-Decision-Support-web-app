@@ -14,11 +14,10 @@ from app import create_app
 from models import db, User, Task
 
 def seed_extreme_data():
-    os.environ["DATABASE_URL"] = "postgresql://neondb_owner:npg_3MIokjFZY0Op@ep-dry-bird-amivmtzu-pooler.c-5.us-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require"
     app = create_app()
     with app.app_context():
-        # Target user
-        email = "tayduacukhoi123@gmail.com"
+        # Get user from command line or default
+        email = os.getenv("TEST_USER_EMAIL", "tayduacukhoi123@gmail.com")
         user = User.query.filter_by(email=email).first()
         if not user:
             print(f"User {email} not found.")

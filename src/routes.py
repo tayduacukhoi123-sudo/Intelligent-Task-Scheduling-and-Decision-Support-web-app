@@ -181,6 +181,30 @@ def parse_task():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
+@bp.route("/api/test-email", methods=["POST"])
+def test_email():
+    """Endpoint to test SMTP configuration by sending a simple test email."""
+    try:
+        from extensions import mail
+        from flask_mail import Message
+        
+        data = request.get_json()
+        recipient = data.get("email")
+        if not recipient:
+            return jsonify({"error": "Recipient email is required."}), 400
+            
+        msg = Message(
+            subject="🚀 TaskMaster: Test Email Connection",
+            recipients=[recipient],
+            body="Congratulations! Your SMTP configuration is working correctly. You will now receive task notifications.",
+            html="<h3>🚀 TaskMaster: Connection Successful</h3><p>Your SMTP configuration is working correctly. You will now receive task notifications.</p>"
+        )
+        mail.send(msg)
+        return jsonify({"message": f"Test email successfully sent to {recipient}"}), 200
+    except Exception as e:
+        logger.error(f"Test email failed: {str(e)}")
+        return jsonify({"error": str(e)}), 500
+
 @bp.route("/api/debug-notifications", methods=["GET"])
 def debug_notifications():
     """Temporary debug endpoint — shows today's date and all tasks for a user."""
@@ -549,7 +573,8 @@ def get_performance_metrics():
 
         # 2. Flexibility
         # Flex = 150 + EarlyBonus + SmartInterleave - SevereDelayPenalty
-        flex = 150
+        # If no tasks exist at all, flex should be 0.
+        flex = 150 if all_tasks else 0
         
         # Early Bonus & Severe Delay Penalty
         early_bonus = 0

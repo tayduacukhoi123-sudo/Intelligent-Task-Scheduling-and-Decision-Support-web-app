@@ -1322,16 +1322,43 @@ async function checkDueNotifications() {
     }
 }
 
-document.addEventListener('DOMContentLoaded', () => {
-    if (!requireAuth()) return;
-
-    const path = window.location.pathname;
-    if (path.includes('task.html')) renderTaskPage();
-    else if (path.includes('schedule.html')) renderSchedule();
-    else if (path.includes('history.html')) renderHistory();
-    else {
-        renderDashboard();
-        initQuickAdd();
-        checkDueNotifications();
     }
 });
+
+// --- EMAIL TESTING ---
+window.testEmail = async () => {
+    const userEmail = localStorage.getItem('user_email');
+    if (!userEmail) {
+        showToast('error', 'Auth Required', 'Please log in again.');
+        return;
+    }
+
+    const btn = document.getElementById('testEmailBtn');
+    if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<i class="ph ph-spinner"></i> Sending...';
+    }
+
+    try {
+        const res = await fetch(`${API_BASE}/api/test-email`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email: userEmail })
+        });
+        
+        const data = await res.json();
+        if (res.ok) {
+            showToast('success', 'Test Sent!', `Check ${userEmail} for the test message.`);
+        } else {
+            throw new Error(data.error || 'SMTP Error');
+        }
+    } catch (err) {
+        showToast('error', 'Test Failed', err.message);
+        console.error('Email Test Failed:', err);
+    } finally {
+        if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="ph ph-envelope"></i> Test Email';
+        }
+    }
+};

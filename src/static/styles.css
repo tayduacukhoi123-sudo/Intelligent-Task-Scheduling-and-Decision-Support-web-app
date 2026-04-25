@@ -1209,3 +1209,20 @@ body {
     }
 }
 
+
+/* Manual Entry Button */
+#manualAddBtn i {
+    transition: all 0.3s ease;
+}
+
+#manualAddBtn:hover i {
+    color: var(--primary);
+    transform: scale(1.2) rotate(10deg);
+}
+
+#manualCard .v-item-value {
+    padding: 0; /* Let the input handle padding */
+    background: transparent;
+    border: none;
+}
+

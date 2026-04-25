@@ -65,6 +65,47 @@
                     <span>Parse AI</span>
                     <i class="ph ph-sparkle"></i>
                 </button>
+                <div style="width: 1px; height: 24px; background: rgba(255,255,255,0.1); margin: 0 0.5rem;"></div>
+                <button id="manualAddBtn" class="btn" style="background: transparent; border: none; padding: 0.5rem; color: var(--text-muted); cursor: pointer;" title="Manual Entry">
+                    <i class="ph ph-note-pencil" style="font-size: 1.25rem;"></i>
+                </button>
+            </div>
+
+            <div class="verification-card glass-card" id="manualCard">
+                <div class="verification-header">
+                    <span>Manual Task Creation</span>
+                    <i class="ph ph-note-pencil" style="font-size: 1.5rem;"></i>
+                </div>
+                <div class="verification-details">
+                    <div style="grid-column: span 2;">
+                        <div class="v-item-label">Task Name</div>
+                        <input type="text" id="mName" class="form-control" placeholder="e.g. Write weekly report..." style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: white; width: 100%; padding: 0.75rem; border-radius: 12px;">
+                    </div>
+                    <div>
+                        <div class="v-item-label">Urgency (1-10)</div>
+                        <input type="number" id="mUrgency" class="form-control" value="5" min="1" max="10" style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: white; width: 100%; padding: 0.75rem; border-radius: 12px;">
+                    </div>
+                    <div>
+                        <div class="v-item-label">Importance (1-10)</div>
+                        <input type="number" id="mImportance" class="form-control" value="5" min="1" max="10" style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: white; width: 100%; padding: 0.75rem; border-radius: 12px;">
+                    </div>
+                    <div>
+                        <div class="v-item-label">Severity (1-10)</div>
+                        <input type="number" id="mSeverity" class="form-control" value="5" min="1" max="10" style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: white; width: 100%; padding: 0.75rem; border-radius: 12px;">
+                    </div>
+                    <div>
+                        <div class="v-item-label">Duration (mins)</div>
+                        <input type="number" id="mDuration" class="form-control" value="30" min="5" step="5" style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: white; width: 100%; padding: 0.75rem; border-radius: 12px;">
+                    </div>
+                    <div style="grid-column: span 2;">
+                        <div class="v-item-label">Deadline</div>
+                        <input type="datetime-local" id="mDate" class="form-control" style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: white; width: 100%; padding: 0.75rem; border-radius: 12px;">
+                    </div>
+                </div>
+                <div class="verification-actions">
+                    <button class="btn" id="mCancel" style="background: rgba(255,255,255,0.05); color: var(--text-muted); border: 1px solid var(--glass-border);">Cancel</button>
+                    <button class="btn btn-primary" id="mConfirm">Create Task <i class="ph ph-plus"></i></button>
+                </div>
             </div>
 
             <div class="verification-card glass-card" id="verificationCard">

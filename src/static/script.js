@@ -1128,6 +1128,67 @@ async function initQuickAdd() {
             confirmBtn.innerHTML = 'Confirm & Add';
         }
     });
+
+    // --- MANUAL ENTRY LOGIC ---
+    const manualBtn = document.getElementById('manualAddBtn');
+    const manualCard = document.getElementById('manualCard');
+    if (manualBtn && manualCard) {
+        manualBtn.addEventListener('click', () => {
+            // Hide AI card if open
+            document.getElementById('verificationCard').classList.remove('active');
+            
+            // Toggle Manual Card
+            manualCard.classList.toggle('active');
+            if (manualCard.classList.contains('active')) {
+                manualCard.scrollIntoView({ behavior: 'smooth' });
+                // Reset fields
+                document.getElementById('mName').value = '';
+                document.getElementById('mUrgency').value = '5';
+                document.getElementById('mImportance').value = '5';
+                document.getElementById('mSeverity').value = '5';
+                document.getElementById('mDuration').value = '30';
+                
+                // Default deadline to 1 hour from now
+                const d = new Date();
+                d.setHours(d.getHours() + 1);
+                document.getElementById('mDate').value = formatDateForInput(d);
+            }
+        });
+
+        document.getElementById('mCancel').addEventListener('click', () => {
+            manualCard.classList.remove('active');
+        });
+
+        document.getElementById('mConfirm').addEventListener('click', async () => {
+            const title = document.getElementById('mName').value.trim();
+            const urgency = document.getElementById('mUrgency').value;
+            const importance = document.getElementById('mImportance').value;
+            const severity = document.getElementById('mSeverity').value;
+            const duration = document.getElementById('mDuration').value;
+            const deadline = document.getElementById('mDate').value;
+
+            if (!title || !deadline) {
+                showToast('warning', 'Missing Fields', 'Task Name and Deadline are required.');
+                return;
+            }
+
+            const confirmBtn = document.getElementById('mConfirm');
+            confirmBtn.disabled = true;
+            confirmBtn.innerHTML = '<i class="ph ph-spinner"></i> Creating...';
+
+            try {
+                await createTaskAPI(title, urgency, importance, severity, deadline, duration, []);
+                showToast('success', 'Task Created', `"${title}" has been added.`);
+                manualCard.classList.remove('active');
+                renderDashboard();
+            } catch (err) {
+                showToast('error', 'Creation Failed', err.message);
+            } finally {
+                confirmBtn.disabled = false;
+                confirmBtn.innerHTML = 'Create Task <i class="ph ph-plus"></i>';
+            }
+        });
+    }
 }
 
 // ---------------------------------------------------------------------------

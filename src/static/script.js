@@ -793,7 +793,7 @@ function renderCalendar() {
 
     for (let d = 1; d <= daysInMonth; d++) {
         const date = new Date(year, month, d);
-        const dateStr = date.toISOString().split('T')[0];
+        const dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
         
         const isToday = date.toDateString() === today.toDateString();
         const isSelected = date.toDateString() === selectedDate.toDateString();

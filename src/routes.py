@@ -291,7 +291,8 @@ def get_tasks():
             "duration_minutes": t.duration_minutes,
             "tags": json.loads(t.tags) if t.tags else [],
             "status": t.status,
-            "createdAt": t.created_at.isoformat()
+            "createdAt": t.created_at.isoformat(),
+            "completed_at": t.completed_at.isoformat() if t.completed_at else None
         })
     return jsonify(task_list), 200
 
@@ -309,7 +310,8 @@ def get_task(task_id):
         "deadline": task.deadline,
         "duration_minutes": task.duration_minutes,
         "tags": json.loads(task.tags) if task.tags else [],
-        "status": task.status
+        "status": task.status,
+        "completed_at": task.completed_at.isoformat() if task.completed_at else None
     }), 200
 
 def validate_task_fields(data, is_create=False):

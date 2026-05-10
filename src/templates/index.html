@@ -100,6 +100,41 @@
                         <input type="datetime-local" id="mDate" class="form-control" style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: white; width: 100%; padding: 0.75rem; border-radius: 12px;">
                     </div>
                 </div>
+
+                <!-- Live Score Preview Bar -->
+                <div id="mScoreBar" style="margin: 0.5rem 0 1.5rem; padding: 1rem 1.25rem; border-radius: 18px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06); display: flex; align-items: center; gap: 1.25rem; flex-wrap: wrap; transition: border-color 0.5s ease;">
+                    <div style="position:relative; width:56px; height:56px; flex-shrink:0;">
+                        <svg width="56" height="56" viewBox="0 0 56 56" style="transform:rotate(-90deg);">
+                            <circle cx="28" cy="28" r="22" fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="6"/>
+                            <circle id="mGaugeFill" cx="28" cy="28" r="22" fill="none" stroke-width="6" stroke-linecap="round"
+                                stroke-dasharray="138.2" stroke-dashoffset="138.2"
+                                style="transition: stroke-dashoffset 0.7s cubic-bezier(0.34,1.56,0.64,1), stroke 0.5s ease;"/>
+                        </svg>
+                        <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;">
+                            <span id="mScoreNum" style="font-family:'Outfit',sans-serif;font-weight:800;font-size:1rem;color:#fff;">–</span>
+                        </div>
+                    </div>
+                    <div style="flex:1; min-width:0;">
+                        <div style="display:flex; align-items:center; gap:0.75rem; flex-wrap:wrap;">
+                            <span id="mQuadrantBadge" style="display:inline-flex;align-items:center;gap:0.4rem;padding:0.3rem 0.85rem;border-radius:100px;font-family:'Outfit',sans-serif;font-weight:700;font-size:0.8rem;letter-spacing:0.04em;transition:all 0.4s ease;" class="q2-bg">
+                                <i class="ph-fill ph-calendar-star"></i> SCHEDULE
+                            </span>
+                            <span id="mMultiplierBadge" style="font-family:'Outfit',sans-serif;font-size:0.85rem;color:var(--accent);font-weight:700;">×–</span>
+                            <span id="mDaysLeft" style="font-size:0.8rem;color:var(--text-muted);">Set a deadline</span>
+                        </div>
+                        <div style="display:flex;gap:0.5rem;margin-top:0.65rem;align-items:center;">
+                            <div style="flex:1;"><div style="font-size:0.65rem;color:var(--q1-do);font-weight:700;margin-bottom:2px;">U</div><div style="height:4px;background:rgba(255,255,255,0.05);border-radius:4px;overflow:hidden;"><div id="mUBar" style="height:100%;background:var(--q1-do);border-radius:4px;width:50%;transition:width 0.6s cubic-bezier(0.34,1.56,0.64,1);"></div></div></div>
+                            <div style="flex:1;"><div style="font-size:0.65rem;color:var(--q2-schedule);font-weight:700;margin-bottom:2px;">I</div><div style="height:4px;background:rgba(255,255,255,0.05);border-radius:4px;overflow:hidden;"><div id="mIBar" style="height:100%;background:var(--q2-schedule);border-radius:4px;width:50%;transition:width 0.6s cubic-bezier(0.34,1.56,0.64,1);"></div></div></div>
+                            <div style="flex:1;"><div style="font-size:0.65rem;color:var(--q3-delegate);font-weight:700;margin-bottom:2px;">S</div><div style="height:4px;background:rgba(255,255,255,0.05);border-radius:4px;overflow:hidden;"><div id="mSBar" style="height:100%;background:var(--q3-delegate);border-radius:4px;width:50%;transition:width 0.6s cubic-bezier(0.34,1.56,0.64,1);"></div></div></div>
+                        </div>
+                    </div>
+                    <div style="text-align:right;flex-shrink:0;">
+                        <div style="font-size:0.65rem;text-transform:uppercase;letter-spacing:0.1em;color:var(--text-muted);font-weight:700;">Priority</div>
+                        <div id="mScoreLarge" style="font-family:'Outfit',sans-serif;font-weight:800;font-size:2rem;line-height:1;color:#fff;transition:color 0.5s ease;">–</div>
+                        <div style="font-size:0.75rem;color:var(--text-muted);">/ 10</div>
+                    </div>
+                </div>
+
                 <div class="verification-actions">
                     <button class="btn" id="mCancel" style="background: rgba(255,255,255,0.05); color: var(--text-muted); border: 1px solid var(--glass-border);">Cancel</button>
                     <button class="btn btn-primary" id="mConfirm">Create Task <i class="ph ph-plus"></i></button>
@@ -216,6 +251,104 @@
     </main>
     <div class="toast-container" id="toastContainer"></div>
     <script src="/static/script.js"></script>
+    <script>
+    // Live Priority Score Engine for Manual Card
+    (function() {
+        const W_U = 0.3, W_I = 0.4, W_S = 0.3, ALPHA = 2, MAX_RAW = 30;
+        const CIRC = 138.2; // 2π×22
+
+        const QUADRANTS = {
+            Q1: { label: 'DO FIRST',  icon: 'ph-fill ph-fire',          cls: 'q1-bg' },
+            Q2: { label: 'SCHEDULE',  icon: 'ph-fill ph-calendar-star', cls: 'q2-bg' },
+            Q3: { label: 'DELEGATE',  icon: 'ph-fill ph-users-three',   cls: 'q3-bg' },
+            Q4: { label: 'ELIMINATE', icon: 'ph-fill ph-trash',         cls: 'q4-bg' },
+        };
+
+        function scoreColor(n) {
+            if (n <= 3)   return '#22d3ee';
+            if (n <= 5)   return '#818cf8';
+            if (n <= 7)   return '#f59e0b';
+            if (n <= 8.5) return '#f97316';
+            return '#ff4d4d';
+        }
+
+        function update() {
+            const u = Math.min(10, Math.max(1, +document.getElementById('mUrgency').value   || 5));
+            const i = Math.min(10, Math.max(1, +document.getElementById('mImportance').value || 5));
+            const s = Math.min(10, Math.max(1, +document.getElementById('mSeverity').value  || 5));
+            const dl = document.getElementById('mDate').value;
+
+            let multiplier = 1, daysRemaining = null;
+            if (dl) {
+                const hours = (new Date(dl) - Date.now()) / 3600000;
+                daysRemaining = hours / 24;
+                multiplier = 1 + ALPHA / (Math.max(0, daysRemaining) + 1);
+            }
+
+            const base = W_U * u + W_I * i + W_S * s;
+            const raw  = base * multiplier;
+            const norm = Math.min(10, Math.max(1, 1 + (raw / MAX_RAW) * 9));
+            const color = scoreColor(norm);
+
+            // Gauge arc
+            const fill = document.getElementById('mGaugeFill');
+            fill.style.strokeDashoffset = CIRC - (norm / 10) * CIRC;
+            fill.style.stroke = color;
+
+            // Numbers
+            const scoreStr = norm.toFixed(1);
+            document.getElementById('mScoreNum').textContent   = scoreStr;
+            document.getElementById('mScoreLarge').textContent = scoreStr;
+            document.getElementById('mScoreLarge').style.color = color;
+
+            // Score bar border glow
+            document.getElementById('mScoreBar').style.borderColor = color + '44';
+
+            // Multiplier + days
+            document.getElementById('mMultiplierBadge').textContent = `×${multiplier.toFixed(2)}`;
+            const dEl = document.getElementById('mDaysLeft');
+            if (daysRemaining === null) {
+                dEl.textContent = 'Set a deadline'; dEl.style.color = 'var(--text-muted)';
+            } else if (daysRemaining < 0) {
+                dEl.textContent = 'Overdue!'; dEl.style.color = 'var(--q1-do)';
+            } else if (daysRemaining < 1) {
+                dEl.textContent = `${Math.round(daysRemaining * 24)}h remaining`; dEl.style.color = 'var(--q3-delegate)';
+            } else {
+                dEl.textContent = `${Math.ceil(daysRemaining)}d remaining`; dEl.style.color = 'var(--text-muted)';
+            }
+
+            // Quadrant badge
+            const qKey = (u>=6 && i>=6) ? 'Q1' : (!( u>=6) && i>=6) ? 'Q2' : (u>=6) ? 'Q3' : 'Q4';
+            const q = QUADRANTS[qKey];
+            const badge = document.getElementById('mQuadrantBadge');
+            badge.className = q.cls;
+            badge.style.cssText = 'display:inline-flex;align-items:center;gap:0.4rem;padding:0.3rem 0.85rem;border-radius:100px;font-family:Outfit,sans-serif;font-weight:700;font-size:0.8rem;letter-spacing:0.04em;transition:all 0.4s ease;';
+            badge.innerHTML = `<i class="${q.icon}"></i> ${q.label}`;
+
+            // Breakdown bars
+            document.getElementById('mUBar').style.width = `${(W_U * u / 3) * 100}%`;
+            document.getElementById('mIBar').style.width = `${(W_I * i / 4) * 100}%`;
+            document.getElementById('mSBar').style.width = `${(W_S * s / 3) * 100}%`;
+        }
+
+        // Wire inputs — use event delegation so it works even if manualCard opens after load
+        document.addEventListener('input', function(e) {
+            if (['mUrgency','mImportance','mSeverity','mDate'].includes(e.target.id)) update();
+        });
+        document.addEventListener('change', function(e) {
+            if (['mUrgency','mImportance','mSeverity','mDate'].includes(e.target.id)) update();
+        });
+
+        // Run initial calculation once manualCard becomes visible
+        const observer = new MutationObserver(function(mutations) {
+            mutations.forEach(function(m) {
+                if (m.target.id === 'manualCard' && m.target.classList.contains('active')) update();
+            });
+        });
+        const card = document.getElementById('manualCard');
+        if (card) observer.observe(card, { attributes: true, attributeFilter: ['class'] });
+    })();
+    </script>
 </body>
 
 </html>

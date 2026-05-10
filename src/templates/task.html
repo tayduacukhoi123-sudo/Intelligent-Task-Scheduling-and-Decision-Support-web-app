@@ -5,10 +5,237 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Task Priority Manager | Add Task</title>
-    <meta name="description"
-        content="Add a new task and let the priority algorithm calculate its score based on urgency, importance, severity, and deadline.">
+    <meta name="description" content="Add a new task and let the priority algorithm calculate its score based on urgency, importance, severity, and deadline.">
     <link rel="stylesheet" href="/static/styles.css">
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <style>
+        .task-layout {
+            display: grid;
+            grid-template-columns: 1fr 380px;
+            gap: 2rem;
+            max-width: 1100px;
+            align-items: start;
+        }
+
+        /* Live Score Panel */
+        .score-panel {
+            position: sticky;
+            top: 2rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        .score-gauge-card {
+            background: var(--glass-bg);
+            backdrop-filter: var(--glass-blur);
+            border: 1px solid var(--glass-border);
+            border-radius: 28px;
+            padding: 2.5rem 2rem;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+            transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .score-gauge-card::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.15), transparent);
+        }
+
+        /* Ambient glow that changes with score */
+        .score-gauge-card::after {
+            content: '';
+            position: absolute;
+            inset: -50%;
+            border-radius: 50%;
+            filter: blur(60px);
+            opacity: 0.08;
+            background: var(--score-color, #818cf8);
+            transition: background 0.8s ease, opacity 0.5s ease;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .score-gauge-card > * { position: relative; z-index: 1; }
+
+        .gauge-title {
+            font-family: 'Outfit', sans-serif;
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.15em;
+            color: var(--text-muted);
+            margin-bottom: 1.5rem;
+        }
+
+        /* SVG Gauge */
+        .gauge-wrap {
+            position: relative;
+            width: 200px;
+            height: 200px;
+            margin: 0 auto 1.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        #scoreSvg { transform: rotate(-90deg); }
+
+        #gaugeTrack {
+            fill: none;
+            stroke: rgba(255,255,255,0.06);
+            stroke-width: 14;
+        }
+
+        #gaugeFill {
+            fill: none;
+            stroke-width: 14;
+            stroke-linecap: round;
+            stroke: var(--score-color, #818cf8);
+            stroke-dasharray: 502;
+            stroke-dashoffset: 502;
+            transition: stroke-dashoffset 0.8s cubic-bezier(0.34, 1.56, 0.64, 1),
+                        stroke 0.6s ease;
+            filter: drop-shadow(0 0 8px var(--score-color, #818cf8));
+        }
+
+        .gauge-center {
+            position: absolute;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .gauge-score-num {
+            font-family: 'Outfit', sans-serif;
+            font-size: 3.25rem;
+            font-weight: 800;
+            line-height: 1;
+            color: #fff;
+            transition: color 0.6s ease;
+        }
+
+        .gauge-score-label {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            font-weight: 500;
+            margin-top: 0.25rem;
+        }
+
+        /* Quadrant Badge */
+        .quadrant-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.6rem;
+            padding: 0.6rem 1.25rem;
+            border-radius: 100px;
+            font-family: 'Outfit', sans-serif;
+            font-weight: 700;
+            font-size: 0.9rem;
+            letter-spacing: 0.04em;
+            transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+            margin-bottom: 1rem;
+        }
+
+        /* Breakdown bars */
+        .breakdown-section {
+            background: var(--glass-bg);
+            backdrop-filter: var(--glass-blur);
+            border: 1px solid var(--glass-border);
+            border-radius: 20px;
+            padding: 1.5rem;
+        }
+
+        .breakdown-title {
+            font-family: 'Outfit', sans-serif;
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.12em;
+            color: var(--text-muted);
+            margin-bottom: 1.25rem;
+        }
+
+        .breakdown-row {
+            margin-bottom: 1rem;
+        }
+
+        .breakdown-row:last-child { margin-bottom: 0; }
+
+        .breakdown-label {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.9rem;
+            font-weight: 600;
+            margin-bottom: 0.4rem;
+        }
+
+        .breakdown-bar-bg {
+            height: 8px;
+            background: rgba(255,255,255,0.05);
+            border-radius: 100px;
+            overflow: hidden;
+        }
+
+        .breakdown-bar-fill {
+            height: 100%;
+            border-radius: 100px;
+            transition: width 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        /* Multiplier badge */
+        .multiplier-badge {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: rgba(255,255,255,0.03);
+            border: 1px solid var(--glass-border);
+            border-radius: 14px;
+            padding: 1rem 1.25rem;
+            margin-top: 1rem;
+            font-size: 0.9rem;
+        }
+
+        .multiplier-val {
+            font-family: 'Outfit', sans-serif;
+            font-weight: 800;
+            font-size: 1.3rem;
+            color: var(--accent);
+        }
+
+        /* Slider track custom colors */
+        input[type=range] {
+            -webkit-appearance: none;
+            appearance: none;
+            height: 6px;
+            border-radius: 10px;
+            outline: none;
+            cursor: pointer;
+        }
+        #uSlider { background: linear-gradient(90deg, var(--q1-do), rgba(255,255,255,0.1)); }
+        #iSlider { background: linear-gradient(90deg, var(--q2-schedule), rgba(255,255,255,0.1)); }
+        #sSlider { background: linear-gradient(90deg, var(--q3-delegate), rgba(255,255,255,0.1)); }
+
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 20px; height: 20px;
+            border-radius: 50%;
+            background: white;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+            transition: transform 0.2s ease;
+        }
+        input[type=range]::-webkit-slider-thumb:hover { transform: scale(1.2); }
+
+        .slider-val {
+            font-family: 'Outfit', sans-serif;
+            font-weight: 800;
+            font-size: 1.1rem;
+        }
+    </style>
 </head>
 
 <body>
@@ -19,87 +246,83 @@
         </div>
         <ul class="nav-links">
             <li><a href="/" class="nav-item" id="nav-dashboard"><i class="ph ph-squares-four"></i> Dashboard</a></li>
-            <li><a href="/task.html" class="nav-item active" id="nav-task"><i class="ph ph-plus-circle"></i> Add
-                    Task</a></li>
-            <li><a href="/schedule.html" class="nav-item" id="nav-schedule"><i class="ph ph-calendar-check"></i> Matrix
-                    Schedule</a></li>
-            <li><a href="/history.html" class="nav-item" id="nav-history"><i class="ph ph-clock-counter-clockwise"></i>
-                    History</a></li>
+            <li><a href="/task.html" class="nav-item active" id="nav-task"><i class="ph ph-plus-circle"></i> Add Task</a></li>
+            <li><a href="/schedule.html" class="nav-item" id="nav-schedule"><i class="ph ph-calendar-check"></i> Matrix Schedule</a></li>
+            <li><a href="/history.html" class="nav-item" id="nav-history"><i class="ph ph-clock-counter-clockwise"></i> History</a></li>
         </ul>
         <div style="margin-top: auto; padding: 1rem; border-top: 1px solid var(--glass-border);">
-            <div id="userInfo"
-                style="font-size: 0.82rem; color: var(--text-muted); margin-bottom: 0.75rem; word-break: break-all;">
-            </div>
+            <div id="userInfo" style="font-size: 0.82rem; color: var(--text-muted); margin-bottom: 0.75rem; word-break: break-all;"></div>
             <button id="logoutBtn" onclick="logout()" class="btn"
                 style="width:100%; background:rgba(239,68,68,0.15); color:#fca5a5; border:1px solid rgba(239,68,68,0.3); font-size:0.85rem;">
                 <i class="ph ph-sign-out"></i> Logout
             </button>
         </div>
     </nav>
+
     <main class="main-content">
         <header class="page-header animate-in">
             <div>
                 <h1 class="page-title">Evaluate New Task</h1>
-                <p class="page-subtitle">Input task parameters to let the algorithm calculate its priority score.</p>
+                <p class="page-subtitle">Drag the sliders — watch your priority score update in real time.</p>
             </div>
         </header>
 
-        <div class="glass-card animate-in delay-1" style="max-width: 800px; margin-bottom: 2rem;">
-            <form action="#" id="addTaskForm">
-                <div class="form-group">
-                    <label class="form-label" for="taskName">Task Name</label>
-                    <input type="text" id="taskName" class="form-control" placeholder="e.g. Write weekly report..."
-                        required>
-                </div>
-
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;">
+        <div class="task-layout animate-in delay-1">
+            <!-- LEFT: Form -->
+            <div class="glass-card" style="padding: 2.5rem;">
+                <form action="#" id="addTaskForm">
                     <div class="form-group">
-                        <label class="form-label">Urgency (1-10) <span id="urgencyVal"
-                                style="float:right; color:var(--primary);">5</span></label>
-                        <input type="range" id="uSlider" class="range-slider" min="1" max="10" value="5">
-                        <small
-                            style="color: var(--text-muted); font-size: 0.8rem; margin-top: 0.5rem; display: block;">How
-                            soon does this need to be done?</small>
+                        <label class="form-label" for="taskName">Task Name</label>
+                        <input type="text" id="taskName" class="form-control" placeholder="e.g. Write weekly report..." required>
                     </div>
 
+                    <!-- Urgency -->
                     <div class="form-group">
-                        <label class="form-label">Importance (1-10) <span id="importanceVal"
-                                style="float:right; color:var(--primary);">5</span></label>
-                        <input type="range" id="iSlider" class="range-slider" min="1" max="10" value="5">
-                        <small
-                            style="color: var(--text-muted); font-size: 0.8rem; margin-top: 0.5rem; display: block;">How
-                            much impact does this have?</small>
-                    </div>
-                </div>
-
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-top: 1rem;">
-                    <div class="form-group">
-                        <label class="form-label">Severity (1-10) <span id="severityVal"
-                                style="float:right; color:var(--primary);">5</span></label>
-                        <input type="range" id="sSlider" class="range-slider" min="1" max="10" value="5">
-                        <small
-                            style="color: var(--text-muted); font-size: 0.8rem; margin-top: 0.5rem; display: block;">Consequence
-                    <div class="form-group">
-                        <label class="form-label" for="taskTags">Tags (comma-separated)</label>
-                        <input type="text" id="taskTags" class="form-control" placeholder="e.g. Work, DeepWork, Finance">
-                        <small style="color: var(--text-muted); font-size: 0.8rem; margin-top: 0.5rem; display: block;">Add labels to organize your tasks.</small>
+                        <label class="form-label">
+                            Urgency
+                            <span style="color:var(--text-muted); font-size:0.85rem; font-weight:400;"> — How soon does this need to be done?</span>
+                            <span class="slider-val" id="urgencyVal" style="float:right; color:var(--q1-do);">5</span>
+                        </label>
+                        <input type="range" id="uSlider" min="1" max="10" value="5">
                     </div>
 
+                    <!-- Importance -->
                     <div class="form-group">
-                        <label class="form-label" for="taskDuration">Duration (minutes)</label>
-                        <input type="number" id="taskDuration" class="form-control" placeholder="e.g. 30" min="5" step="5">
-                        <small style="color: var(--text-muted); font-size: 0.8rem; margin-top: 0.5rem; display: block;">How long will this take?</small>
+                        <label class="form-label">
+                            Importance
+                            <span style="color:var(--text-muted); font-size:0.85rem; font-weight:400;"> — How much impact does this have?</span>
+                            <span class="slider-val" id="importanceVal" style="float:right; color:var(--q2-schedule);">5</span>
+                        </label>
+                        <input type="range" id="iSlider" min="1" max="10" value="5">
+                    </div>
+
+                    <!-- Severity -->
+                    <div class="form-group">
+                        <label class="form-label">
+                            Severity
+                            <span style="color:var(--text-muted); font-size:0.85rem; font-weight:400;"> — Consequence if skipped?</span>
+                            <span class="slider-val" id="severityVal" style="float:right; color:var(--q3-delegate);">5</span>
+                        </label>
+                        <input type="range" id="sSlider" min="1" max="10" value="5">
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;">
+                        <div class="form-group">
+                            <label class="form-label" for="taskDuration">Duration (minutes)</label>
+                            <input type="number" id="taskDuration" class="form-control" placeholder="e.g. 30" min="5" step="5">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="taskTags">Tags</label>
+                            <input type="text" id="taskTags" class="form-control" placeholder="Work, Finance...">
+                        </div>
                     </div>
 
                     <div class="form-group">
                         <label class="form-label" for="taskDate">Deadline</label>
                         <input type="datetime-local" id="taskDate" class="form-control" required>
                     </div>
-                </div>
 
-                <div
-                    style="margin-top: 2rem; border-top: 1px solid var(--glass-border); padding-top: 1.5rem; display: flex; justify-content: flex-end; gap: 1rem;">
-                    <div style="display:flex; gap:1rem; align-items:center;">
+                    <div style="margin-top: 1.5rem; border-top: 1px solid var(--glass-border); padding-top: 1.5rem; display: flex; gap: 1rem;">
                         <button type="submit" id="submitBtn" class="btn btn-primary" style="flex:1;">
                             <i class="ph ph-magic-wand"></i> Calculate &amp; Add Task
                         </button>
@@ -108,18 +331,228 @@
                             Cancel
                         </button>
                     </div>
-            </form>
+                </form>
+            </div>
+
+            <!-- RIGHT: Live Score Panel -->
+            <div class="score-panel">
+                <!-- Main gauge card -->
+                <div class="score-gauge-card" id="scoreCard">
+                    <div class="gauge-title"><i class="ph ph-lightning-a"></i> Live Priority Score</div>
+
+                    <div class="gauge-wrap">
+                        <svg id="scoreSvg" width="200" height="200" viewBox="0 0 200 200">
+                            <circle id="gaugeTrack" cx="100" cy="100" r="80"/>
+                            <circle id="gaugeFill" cx="100" cy="100" r="80"/>
+                        </svg>
+                        <div class="gauge-center">
+                            <span class="gauge-score-num" id="liveScore">–</span>
+                            <span class="gauge-score-label">/ 10</span>
+                        </div>
+                    </div>
+
+                    <!-- Quadrant badge -->
+                    <div id="quadrantBadge" class="quadrant-badge q2-bg">
+                        <i class="ph-fill ph-calendar-star"></i>
+                        <span id="quadrantLabel">Set a deadline</span>
+                    </div>
+
+                    <!-- Multiplier row -->
+                    <div class="multiplier-badge">
+                        <div>
+                            <div style="font-size:0.75rem; font-weight:700; text-transform:uppercase; letter-spacing:0.1em; color:var(--text-muted); margin-bottom:0.2rem;">Deadline Multiplier</div>
+                            <div style="font-size:0.82rem; color:var(--text-muted);" id="daysLabel">No deadline set</div>
+                        </div>
+                        <span class="multiplier-val" id="multiplierVal">×–</span>
+                    </div>
+                </div>
+
+                <!-- Breakdown bars -->
+                <div class="breakdown-section">
+                    <div class="breakdown-title"><i class="ph ph-chart-bar"></i> Score Breakdown</div>
+
+                    <div class="breakdown-row">
+                        <div class="breakdown-label">
+                            <span style="color:var(--q1-do);">Urgency <span style="font-size:0.75rem; color:var(--text-muted);">×0.30</span></span>
+                            <span id="urgencyContrib" style="color:var(--text-muted);">1.5</span>
+                        </div>
+                        <div class="breakdown-bar-bg">
+                            <div class="breakdown-bar-fill" id="urgencyBar" style="background: var(--q1-do); width: 50%;"></div>
+                        </div>
+                    </div>
+
+                    <div class="breakdown-row">
+                        <div class="breakdown-label">
+                            <span style="color:var(--q2-schedule);">Importance <span style="font-size:0.75rem; color:var(--text-muted);">×0.40</span></span>
+                            <span id="importanceContrib" style="color:var(--text-muted);">2.0</span>
+                        </div>
+                        <div class="breakdown-bar-bg">
+                            <div class="breakdown-bar-fill" id="importanceBar" style="background: var(--q2-schedule); width: 50%;"></div>
+                        </div>
+                    </div>
+
+                    <div class="breakdown-row">
+                        <div class="breakdown-label">
+                            <span style="color:var(--q3-delegate);">Severity <span style="font-size:0.75rem; color:var(--text-muted);">×0.30</span></span>
+                            <span id="severityContrib" style="color:var(--text-muted);">1.5</span>
+                        </div>
+                        <div class="breakdown-bar-bg">
+                            <div class="breakdown-bar-fill" id="severityBar" style="background: var(--q3-delegate); width: 50%;"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
 
-        <h3 style="margin-bottom: 1rem; color: white;">Active Tasks (Sorted by Priority)</h3>
-        <div id="activeTasksContainer" class="animate-in delay-2"
-            style="display: flex; flex-direction: column; gap: 1rem; max-width: 800px;">
-            <p style="color:var(--text-muted)">Loading tasks…</p>
+        <!-- Active Tasks List -->
+        <div style="margin-top: 3rem; max-width: 1100px;">
+            <h3 style="margin-bottom: 1.25rem; font-family: 'Outfit', sans-serif; font-weight: 700; font-size: 1.4rem; letter-spacing: -0.02em;">
+                <i class="ph ph-list-bullets" style="color: var(--primary); margin-right: 0.5rem;"></i>Active Tasks
+                <span style="font-size: 0.9rem; font-weight: 500; color: var(--text-muted); margin-left: 0.5rem;">Sorted by Priority</span>
+            </h3>
+            <div id="activeTasksContainer" class="animate-in delay-2" style="display: flex; flex-direction: column; gap: 1rem;">
+                <p style="color:var(--text-muted)">Loading tasks…</p>
+            </div>
         </div>
-
     </main>
+
     <div class="toast-container" id="toastContainer"></div>
     <script src="/static/script.js"></script>
+
+    <!-- Live Score Engine — mirrors algorithm.py exactly -->
+    <script>
+    (function () {
+        const W_U = 0.3, W_I = 0.4, W_S = 0.3, ALPHA = 2, MAX_RAW = 30;
+
+        const QUADRANTS = {
+            Q1: { label: 'DO FIRST',  icon: 'ph-fill ph-fire',          cls: 'q1-bg' },
+            Q2: { label: 'SCHEDULE',   icon: 'ph-fill ph-calendar-star', cls: 'q2-bg' },
+            Q3: { label: 'DELEGATE',   icon: 'ph-fill ph-users-three',   cls: 'q3-bg' },
+            Q4: { label: 'ELIMINATE',  icon: 'ph-fill ph-trash',         cls: 'q4-bg' },
+        };
+
+        // Score-to-color: green → yellow → orange → red
+        function scoreColor(n) {
+            if (n <= 3)  return '#22d3ee';   // cyan — very low
+            if (n <= 5)  return '#818cf8';   // indigo — low-medium
+            if (n <= 7)  return '#f59e0b';   // amber — medium-high
+            if (n <= 8.5) return '#f97316'; // orange — high
+            return '#ff4d4d';                // red — critical
+        }
+
+        const CIRCUMFERENCE = 2 * Math.PI * 80; // 502.65
+
+        // Animate a number from current displayed value to target
+        function animateNumber(el, to, decimals = 1) {
+            const from = parseFloat(el.dataset.val || 0);
+            el.dataset.val = to;
+            const dur = 600, start = performance.now();
+            function step(now) {
+                const p = Math.min((now - start) / dur, 1);
+                // ease-out-cubic
+                const eased = 1 - Math.pow(1 - p, 3);
+                el.textContent = (from + (to - from) * eased).toFixed(decimals);
+                if (p < 1) requestAnimationFrame(step);
+            }
+            requestAnimationFrame(step);
+        }
+
+        function recalculate() {
+            const u = +document.getElementById('uSlider').value;
+            const i = +document.getElementById('iSlider').value;
+            const s = +document.getElementById('sSlider').value;
+            const deadlineStr = document.getElementById('taskDate').value;
+
+            // Update slider labels
+            document.getElementById('urgencyVal').textContent    = u;
+            document.getElementById('importanceVal').textContent  = i;
+            document.getElementById('severityVal').textContent    = s;
+
+            // Deadline multiplier
+            let multiplier = 1, daysRemaining = null;
+            if (deadlineStr) {
+                const diff = (new Date(deadlineStr) - Date.now()) / 3600000; // hours
+                const days = diff / 24;
+                const clamped = Math.max(0, days);
+                multiplier = 1 + ALPHA / (clamped + 1);
+                daysRemaining = days;
+            }
+
+            // Base & final score
+            const base = W_U * u + W_I * i + W_S * s;
+            const rawScore = base * multiplier;
+            const normalized = Math.min(10, Math.max(1, 1 + (rawScore / MAX_RAW) * 9));
+
+            // Contributions (for breakdown bars, relative to their max contribution)
+            const uContrib = W_U * u;   // max 3
+            const iContrib = W_I * i;   // max 4
+            const sContrib = W_S * s;   // max 3
+
+            // --- Update DOM ---
+            const color = scoreColor(normalized);
+
+            // Gauge fill
+            const offset = CIRCUMFERENCE - (normalized / 10) * CIRCUMFERENCE;
+            const fill = document.getElementById('gaugeFill');
+            fill.style.strokeDashoffset = offset;
+            fill.style.stroke = color;
+            fill.style.filter = `drop-shadow(0 0 10px ${color})`;
+
+            // Score number
+            animateNumber(document.getElementById('liveScore'), normalized, 1);
+
+            // Ambient glow color
+            document.getElementById('scoreCard').style.setProperty('--score-color', color);
+
+            // Multiplier
+            document.getElementById('multiplierVal').textContent = `×${multiplier.toFixed(2)}`;
+            const daysEl = document.getElementById('daysLabel');
+            if (daysRemaining === null) {
+                daysEl.textContent = 'No deadline set';
+            } else if (daysRemaining < 0) {
+                daysEl.textContent = 'Overdue!';
+                daysEl.style.color = 'var(--q1-do)';
+            } else if (daysRemaining < 1) {
+                daysEl.textContent = `${Math.round(daysRemaining * 24)}h remaining`;
+                daysEl.style.color = 'var(--q3-delegate)';
+            } else {
+                daysEl.textContent = `${Math.ceil(daysRemaining)} day${Math.ceil(daysRemaining) === 1 ? '' : 's'} remaining`;
+                daysEl.style.color = 'var(--text-muted)';
+            }
+
+            // Quadrant
+            const urgent = u >= 6, important = i >= 6;
+            const qKey = urgent && important ? 'Q1' : !urgent && important ? 'Q2' : urgent ? 'Q3' : 'Q4';
+            const q = QUADRANTS[qKey];
+            const badge = document.getElementById('quadrantBadge');
+            badge.className = `quadrant-badge ${q.cls}`;
+            badge.innerHTML = `<i class="${q.icon}"></i><span>${q.label}</span>`;
+            document.getElementById('quadrantLabel'); // already updated via innerHTML
+
+            // Breakdown bars
+            document.getElementById('urgencyContrib').textContent    = uContrib.toFixed(1);
+            document.getElementById('importanceContrib').textContent  = iContrib.toFixed(1);
+            document.getElementById('severityContrib').textContent    = sContrib.toFixed(1);
+            document.getElementById('urgencyBar').style.width    = `${(uContrib / 3) * 100}%`;
+            document.getElementById('importanceBar').style.width  = `${(iContrib / 4) * 100}%`;
+            document.getElementById('severityBar').style.width   = `${(sContrib / 3) * 100}%`;
+        }
+
+        // Wire up all inputs
+        ['uSlider', 'iSlider', 'sSlider', 'taskDate'].forEach(id => {
+            document.getElementById(id).addEventListener('input', recalculate);
+            document.getElementById(id).addEventListener('change', recalculate);
+        });
+
+        // Set default deadline to tomorrow for immediate visual feedback
+        const tomorrow = new Date(Date.now() + 86400000);
+        tomorrow.setMinutes(tomorrow.getMinutes() - tomorrow.getTimezoneOffset());
+        document.getElementById('taskDate').value = tomorrow.toISOString().slice(0, 16);
+
+        // Initial render
+        recalculate();
+    })();
+    </script>
 </body>
 
 </html>

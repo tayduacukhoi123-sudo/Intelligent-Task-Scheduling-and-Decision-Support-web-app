@@ -1,19 +1,66 @@
-# Python artifacts
+# ========================
+# Python
+# ========================
 __pycache__/
 *.py[cod]
 *$py.class
+*.pyo
+
+# ========================
+# Virtual Environment
+# ========================
 venv/
 .venv/
 env/
-.env
+ENV/
 
+# ========================
+# Environment / Secrets
+# ========================
+.env
+.flaskenv
+
+# ========================
 # Flask / SQLite
+# ========================
 instance/
-database.db
+*.db
 *.sqlite3
 
-# IDE / OS
+# ========================
+# IDE / Editor
+# ========================
 .vscode/
 .idea/
+*.swp
+*.swo
+*~
+
+# ========================
+# OS Files
+# ========================
 .DS_Store
 Thumbs.db
+desktop.ini
+
+# ========================
+# Kiro / AI tools
+# ========================
+.kiro/
+
+# ========================
+# Logs / Cache
+# ========================
+*.log
+.pytest_cache/
+.mypy_cache/
+htmlcov/
+
+# ========================
+# Academic / Report Files
+# ========================
+*.docx
+*.pdf
+*.pptx
+*.xlsx
+

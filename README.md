@@ -1,114 +1,330 @@
-# Task Priority Manager
+# Task Priority Manager — Intelligent Task Scheduling & Decision Support
 
-This web application streamlines productivity by merging the Eisenhower Matrix with a multi-criteria weighted scoring system.
+A web-based time management application that accepts unstructured task input and processes it through a two-pass algorithm combining **Weighted Scoring** and **Eisenhower Matrix** classification to produce an optimally ordered task list. Built as the final project for **Chuyên đề 2 (SS2)** at Hanoi University.
 
-## Overview
+> **Live Demo:** [https://task-priority-manager.onrender.com](https://task-priority-manager.onrender.com)
 
-The application executes a defined pipeline where user-submitted tasks are first evaluated on a scale of urgency, importance, severity, and deadline. The system processes these inputs to categorize and rank tasks optimally, delivering a structured list that is simultaneously recorded as part of the user's permanent schedule history.
+---
+
+## Team
+
+**Course:** Chuyên đề 2 (SS2) — Hanoi University / Faculty of Information Technology
+**Group:** Group 2
+
+| Name | Student ID | Role | Responsibilities |
+|------|-----------|------|-----------------|
+| Hoàng Trung Đức | 2301040046 | BA / PM | Requirements gathering, ERD design, API specification, project tracking, final report |
+| Nguyễn Minh Quang | — | Backend Dev | Flask project setup, database connection, models, CRUD APIs, CORS configuration, authentication |
+| Chu Minh Hiếu | 2201040065 | Algorithm Dev | Algorithm implementation, web appearance design, performance metrics, AI API integration |
+
+---
 
 ## Tech Stack
 
-|  Layer   |    Technology    |
-| -------: | :--------------- |
-|  Backend | Python, Flask    |
-|      ORM | SQLAlchemy       |
-| Database | MySQL            |
-| Frontend | HTML / CSS / JS  |
-|     Auth | Google OAuth 2.0 |
+| Layer | Technology |
+|------:|:-----------|
+| Frontend | HTML, CSS, Vanilla JavaScript |
+| Backend | Python 3.10+, Flask |
+| ORM | SQLAlchemy (Flask-SQLAlchemy) |
+| Database | SQLite (local dev) / PostgreSQL (Neon, production) |
+| Migrations | Flask-Migrate (Alembic) |
+| Auth | Google OAuth 2.0 (Sign-In with Google) |
+| AI | External AI API (Google Gemini) — natural-language task parsing & scoring suggestions |
+| Email | Flask-Mail + APScheduler (daily reminders) |
+| Deployment | Render (Gunicorn) |
+| Architecture | 3-tier: GUI (HTML/CSS/JS) → BLL (Flask routes + algorithm.py) → DAL (SQLAlchemy ORM + DB) |
+
+---
+
+## Main Features
+
+- **Login / Logout** — Google OAuth 2.0 sign-in; user profile created automatically on first login.
+- **Task CRUD** — Create, read, update, delete tasks with urgency / importance / severity / deadline.
+- **Weighted Scoring + Eisenhower Matrix Sorting** — Two-pass algorithm: weighted scoring first, then Eisenhower quadrant classification (Do First, Schedule, Delegate, Eliminate).
+- **Schedule Dashboard** — Visual task board sorted by priority with real-time score recalculation.
+- **History Tracking** — Completed tasks log with timestamps; clearable history.
+- **Deadline Management + Re-sort** — Scores automatically increase as deadlines approach; task order updates in real time.
+- **Progress Tracking** — Track task completion status across active and completed states.
+- **Calendar View** — Visual calendar interface for deadline overview.
+- **AI-Powered Task Suggestions** — Describe a task in natural language; AI extracts title, deadline, urgency/importance scores, tags, and detects schedule conflicts.
+- **Notification / Reminder System** — APScheduler cron job sends priority-sorted HTML email daily.
+- **Export (XLSX)** — Export task data to Excel spreadsheet.
+- **Performance Metrics** — Three-metric evaluation framework: Completion, Agility, and Flexibility scores over a 3-day rolling window.
+- **Smart Tags** — Auto-generated contextual tags with color coding.
+
+---
 
 ## Project Structure
 
 ```
-├── app.py
-├── models.py
-├── schema.sql
-├── requirements.txt
-├── routes/
-│   ├── auth.py
-│   ├── tasks.py
-│   ├── sort.py
-│   ├── schedule.py
-│   └── history.py
-├── algorithm/
-│   └── scoring.py
-├── docs/
-│   ├── api_spec.md
-│   ├── uc_diagram.xml
-│   ├── sequence_diagram.xml
-│   └── erd_diagram.xml
-└── frontend/
-    ├── index.html
-    ├── tasks.html
-    ├── schedule.html
-    └── history.html
+Intelligent-Task-Scheduling-and-Decision-Support-web-app/
+├── README.md                  # This file
+├── render.yaml                # Render deployment config
+│
+└── src/                       # ← All source code lives here
+    ├── .env.example           # Environment variable template
+    ├── .gitignore             # Git ignore rules
+    ├── requirements.txt       # Python dependencies
+    ├── Procfile               # Gunicorn entry point (production)
+    ├── start.sh               # Startup script (migration + serve)
+    │
+    ├── app.py                 # Flask app factory (create_app)
+    ├── extensions.py          # SQLAlchemy, Migrate, Mail instances
+    ├── models.py              # Database models (User, Task, Schedule)
+    ├── routes.py              # All API & page routes (Blueprint)
+    ├── algorithm.py           # Priority scoring engine + Eisenhower
+    ├── scheduler.py           # APScheduler daily notification job
+    ├── mail_service.py        # HTML/plain-text email builder + sender
+    ├── seed_data.py           # Sample data seeder for testing
+    ├── schema.sql             # SQL database schema (SQLite/PostgreSQL compatible)
+    ├── fix_db_schema.py       # One-time DB migration fix script
+    ├── update_schema.py       # Add completed_at column script
+    ├── diagram                # ERD diagram (draw.io XML)
+    ├── workflow_interworking.txt  # Architecture documentation
+    │
+    ├── migrations/            # Flask-Migrate (Alembic) migrations
+    │   ├── alembic.ini
+    │   ├── env.py
+    │   ├── script.py.mako
+    │   └── versions/          # Migration version files
+    │
+    ├── static/                # Frontend assets
+    │   ├── script.js          # Main JavaScript (API calls, UI logic)
+    │   └── styles.css         # All CSS styles
+    │
+    └── templates/             # Jinja2 HTML templates
+        ├── login.html         # Login page (Google OAuth)
+        ├── index.html         # Dashboard (main page)
+        ├── task.html          # Task management page
+        ├── schedule.html      # Eisenhower Matrix schedule view
+        └── history.html       # Completed task history
 ```
 
-## Setup & Installation
+---
 
-1. Clone the repo
+## Installation & Setup
+
+### Prerequisites
+
+- **Python 3.10+** — [Download](https://www.python.org/downloads/)
+- **pip** — comes with Python
+- **Git** — [Download](https://git-scm.com/downloads)
+- A **Google Cloud** project with OAuth 2.0 credentials ([Guide](https://console.cloud.google.com/apis/credentials))
+- *(Optional)* A **Google Gemini API** key for AI features ([Get one](https://aistudio.google.com/app/apikey))
+- *(Optional)* A **Gmail App Password** for email notifications ([Guide](https://support.google.com/accounts/answer/185833))
+
+### Step 1 — Clone the Repository
 
 ```bash
-git clone <repo-url>
-cd task-priority-manager
+git clone https://github.com/tayduacukhoi123-sudo/Intelligent-Task-Scheduling-and-Decision-Support-web-app.git
+cd Intelligent-Task-Scheduling-and-Decision-Support-web-app
 ```
 
-2. Install dependencies
+### Step 2 — Create a Virtual Environment
+
+```bash
+# Windows
+cd src
+python -m venv venv
+venv\Scripts\activate
+
+# macOS / Linux
+cd src
+python3 -m venv venv
+source venv/bin/activate
+```
+
+### Step 3 — Install Dependencies
 
 ```bash
 pip install -r requirements.txt
 ```
 
-3. Configure environment
-
-Create a `.env` file:
-
-```
-FLASK_APP=app.py
-FLASK_ENV=development
-DATABASE_URL=mysql://user:password@localhost/taskdb
-GOOGLE_CLIENT_ID=your_google_client_id
-GOOGLE_CLIENT_SECRET=your_google_client_secret
-SECRET_KEY=your_secret_key
-```
-
-4. Initialize database
+### Step 4 — Configure Environment Variables
 
 ```bash
-mysql -u root -p < schema.sql
+# Copy the example file
+cp .env.example .flaskenv       # Linux/macOS
+copy .env.example .flaskenv     # Windows
 ```
 
-5. Run the app
+Edit `.flaskenv` and fill in your real values:
+
+```env
+# Required
+FLASK_APP=app:create_app
+FLASK_DEBUG=1
+DATABASE_URL=sqlite:///database.db
+SECRET_KEY=<generate-a-random-string>
+GOOGLE_CLIENT_ID=<your-google-client-id>
+GOOGLE_CLIENT_SECRET=<your-google-client-secret>
+
+# Optional — AI task parsing
+GEMINI_API_KEY=<your-gemini-api-key>
+
+# Optional — Email notifications
+MAIL_SERVER=smtp.gmail.com
+MAIL_PORT=587
+MAIL_USE_TLS=true
+MAIL_USERNAME=<your-gmail>
+MAIL_PASSWORD=<your-gmail-app-password>
+MAIL_DEFAULT_SENDER=<your-gmail>
+```
+
+> **Note:** For Google OAuth, you must add `http://localhost:5000` to **Authorized JavaScript origins** in your Google Cloud Console.
+
+### Step 5 — Initialize the Database
+
+The database is automatically created on first run via `db.create_all()`. To run Alembic migrations:
 
 ```bash
+flask db upgrade
+```
+
+### Step 6 — (Optional) Seed Sample Data
+
+```bash
+python seed_data.py
+```
+
+This creates 8 sample tasks for the first user in the database. You must log in with Google first to have a user in the DB.
+
+---
+
+## How to Run
+
+### Run the Backend (Flask Server)
+
+```bash
+cd src
 flask run
 ```
 
+The server starts at: **http://localhost:5000**
+
+### Run the Frontend
+
+The frontend is served **by Flask itself** — no separate frontend server is needed. Simply open:
+
+```
+http://localhost:5000
+```
+
+You will see the login page. Sign in with Google to access the dashboard.
+
+### Run the Full System from a Clean Machine
+
+```bash
+# 1. Clone
+git clone https://github.com/tayduacukhoi123-sudo/Intelligent-Task-Scheduling-and-Decision-Support-web-app.git
+cd Intelligent-Task-Scheduling-and-Decision-Support-web-app/src
+
+# 2. Virtual environment
+python -m venv venv
+venv\Scripts\activate          # Windows
+# source venv/bin/activate     # macOS/Linux
+
+# 3. Install dependencies
+pip install -r requirements.txt
+
+# 4. Configure environment
+copy .env.example .flaskenv    # Windows
+# cp .env.example .flaskenv    # macOS/Linux
+# → Edit .flaskenv with your real keys
+
+# 5. Initialize DB + run
+flask db upgrade
+flask run
+
+# 6. Open http://localhost:5000 in your browser
+```
+
+---
+
+## Demo Account
+
+This app uses **Google OAuth 2.0** for authentication.
+
+To test the app:
+1. Go to `http://localhost:5000`
+2. Click **"Sign in with Google"**
+3. Use any Google account to log in — a user profile is created automatically on first sign-in
+
+> **Note:** For the grading team — if the Google OAuth Client ID has been restricted to specific test accounts, please contact the team for access or use the deployed version at the live demo URL above.
+>
+> If a specific demo account has been set up, credentials will be provided in the submission email.
+
+---
+
+## Database Migration
+
+The project uses **Flask-Migrate** (Alembic) for database schema management.
+
+```bash
+# Apply all pending migrations
+flask db upgrade
+
+# Create a new migration after model changes
+flask db migrate -m "description of change"
+
+# Downgrade one step
+flask db downgrade
+```
+
+For fresh setups, `db.create_all()` in `app.py` auto-creates all tables if they don't exist.
+
+---
+
+## Known Issues & Limitations
+
+1. **Pomodoro timer not implemented** — Was planned but not completed within the course timeline. Users must use external timer tools.
+
+2. **Performance metrics formulas need real-world validation** — Agility and Flexibility scores are theoretically defined but not yet tested with diverse user behavior data.
+
+3. **No mobile-responsive design** — The application may not render well on small screens. Future work: apply responsive CSS or migrate to a framework with mobile support.
+
+4. **Deployment in progress** — Application is fully functional on localhost; cloud deployment (Render) is being finalized.
+
+5. **No unit tests** — The `algorithm.py` scoring functions are pure and easily testable, but automated tests have not been implemented yet.
+
+6. **`routes.py` is monolithic (~650 lines)** — All API routes are in a single file. Should be split into Flask Blueprints by feature area.
+
+7. **Frontend priority score may slightly differ from backend** — Both `script.js` and `algorithm.py` implement the same formula, but edge cases in date parsing may cause minor differences.
+
+8. **Email feature requires Gmail App Password** — Standard Gmail passwords don't work; you need to generate an [App Password](https://support.google.com/accounts/answer/185833) with 2-Step Verification enabled.
+
+9. **Single user only** — No team/shared task features. Future improvement: add workspace and task assignment for collaborative use.
+
+---
+
 ## Algorithm
 
-Tasks are evaluated using a weighted equation where urgency and importance each contribute 40% to the final score, while estimated time accounts for the remaining 20%.
+Tasks are scored using a weighted formula with a deadline-proximity multiplier:
 
 $$
-\text{score}=(\text{urgency}\times0.4)+(\text{importance}\times0.4)+(\text{estimated time}\times0.2)
+\text{Score} = (W_U \times \text{Urgency} + W_I \times \text{Importance} + W_S \times \text{Severity}) \times \left(1 + \frac{\alpha}{\text{DaysRemaining} + 1}\right)
 $$
 
-Following this calculation, a classification rule sorts tasks into the Eisenhower Matrix quadrants:
+| Constant | Value | Meaning |
+|----------|-------|---------|
+| W_U | 0.3 | Urgency weight |
+| W_I | 0.4 | Importance weight |
+| W_S | 0.3 | Severity weight |
+| α | 2 | Deadline decay factor |
 
-|  Quadrant |           Condition            |     Action     |
-| --------- | ------------------------------ | -------------- |
-| Do First  | High urgency + High importance | Do immediately |
-| Schedule  | Low urgency + High importance  | Planning       |
-| Delegate  | High urgency + Low importance  | Delegate       |
-| Eliminate | Low urgency + Low importance   | Drop           |
+The score is normalized to a **1.0–10.0** scale for display. As a deadline approaches, the multiplier increases, automatically pushing urgent tasks to the top.
 
-The ultimate output is a sorted list where tasks inside each category are ranked from highest to lowest score.
+### Eisenhower Matrix Classification
 
-## Team
-|        Name       |      Role     |                Responsibilities                |
-| ----------------- | ------------- | ---------------------------------------------- |
-| Hoàng Trung Đức   | BA / PM       | Requirements, diagrams, documentation          |
-| Nguyễn Minh Quang | Backend Dev   | Flask, API, database, ORM, authentication      |
-| Chu Minh Hiếu     | Algorithm Dev | algorithm, history tracking, database, testing |
+| Quadrant | Condition | Action |
+|----------|-----------|--------|
+| 🔴 Do First | Urgency ≥ 6 AND Importance ≥ 6 | Do immediately |
+| 🔵 Schedule | Urgency < 6 AND Importance ≥ 6 | Plan for later |
+| 🟡 Delegate | Urgency ≥ 6 AND Importance < 6 | Delegate to others |
+| ⚪ Eliminate | Urgency < 6 AND Importance < 6 | Consider dropping |
 
-## Course
+---
 
-Chuyên đề 2 — [HANU / Công nghệ thông tin]
+## License
+
+This project was developed for academic purposes as part of the **Chuyên đề 2** course at **Hanoi University (HANU)**.

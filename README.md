@@ -102,157 +102,110 @@ Intelligent-Task-Scheduling-and-Decision-Support-web-app/
 
 ---
 
-## Installation & Setup
+## Installation & Clean-Machine Setup Guide
 
-### Prerequisites
+This guide walks you through setting up and running the **Task Priority Manager** on a clean machine from scratch.
 
-- **Python 3.10+** — [Download](https://www.python.org/downloads/)
-- **pip** — comes with Python
-- **Git** — [Download](https://git-scm.com/downloads)
-- A **Google Cloud** project with OAuth 2.0 credentials ([Guide](https://console.cloud.google.com/apis/credentials))
-- *(Optional)* A **Google Gemini API** key for AI features ([Get one](https://aistudio.google.com/app/apikey))
-- *(Optional)* A **Gmail App Password** for email notifications ([Guide](https://support.google.com/accounts/answer/185833))
+### 1. Install Required Tools
+Ensure you have the following installed on your machine:
+*   **Python 3.10+**: [Download Python](https://www.python.org/downloads/) (Make sure to check "Add Python to PATH" during installation)
+*   **Git**: [Download Git](https://git-scm.com/downloads)
 
-### Step 1 — Clone the Repository
-
+### 2. Copy .env.example to .env and Fill Values
+Clone this repository and go to the project directory:
 ```bash
 git clone https://github.com/tayduacukhoi123-sudo/Intelligent-Task-Scheduling-and-Decision-Support-web-app.git
 cd Intelligent-Task-Scheduling-and-Decision-Support-web-app
 ```
 
-### Step 2 — Create a Virtual Environment
+Copy the template environment configuration file to `.env`:
+*   **Windows (PowerShell/CMD):**
+    ```powershell
+    copy .env.example .env
+    ```
+*   **macOS / Linux:**
+    ```bash
+    cp .env.example .env
+    ```
 
-```bash
-# Windows
-cd src
-python -m venv venv
-venv\Scripts\activate
-
-# macOS / Linux
-cd src
-python3 -m venv venv
-source venv/bin/activate
-```
-
-### Step 3 — Install Dependencies
-
-```bash
-pip install -r requirements.txt
-```
-
-### Step 4 — Configure Environment Variables
-
-```bash
-# Copy the example file
-cp .env.example .flaskenv       # Linux/macOS
-copy .env.example .flaskenv     # Windows
-```
-
-Edit `.flaskenv` and fill in your real values:
-
+Open the newly created `.env` file and fill in the values:
 ```env
-# Required
-FLASK_APP=app:create_app
+FLASK_APP=src/app.py
 FLASK_DEBUG=1
 DATABASE_URL=sqlite:///database.db
-SECRET_KEY=<generate-a-random-string>
-GOOGLE_CLIENT_ID=<your-google-client-id>
-GOOGLE_CLIENT_SECRET=<your-google-client-secret>
+SECRET_KEY=generate-a-random-string-here
 
-# Optional — AI task parsing
-GEMINI_API_KEY=<your-gemini-api-key>
+# Google OAuth 2.0 Credentials (Required for login)
+GOOGLE_CLIENT_ID=your-google-client-id.apps.googleusercontent.com
+GOOGLE_CLIENT_SECRET=your-google-client-secret
 
-# Optional — Email notifications
+# Google Gemini API Key (Required for AI task suggestions)
+GEMINI_API_KEY=your-gemini-api-key
+
+# Email Notification Server (Optional)
 MAIL_SERVER=smtp.gmail.com
 MAIL_PORT=587
 MAIL_USE_TLS=true
-MAIL_USERNAME=<your-gmail>
-MAIL_PASSWORD=<your-gmail-app-password>
-MAIL_DEFAULT_SENDER=<your-gmail>
+MAIL_USERNAME=your-email@gmail.com
+MAIL_PASSWORD=your-app-password
+MAIL_DEFAULT_SENDER=your-email@gmail.com
 ```
 
-> **Note:** For Google OAuth, you must add `http://localhost:5000` to **Authorized JavaScript origins** in your Google Cloud Console.
+### 3. Install Backend Dependencies and Run Database Migration/Seed
+Create a virtual environment, activate it, install dependencies, and run migrations:
 
-### Step 5 — Initialize the Database
+*   **Windows:**
+    ```powershell
+    # Create virtual environment
+    python -m venv venv
+    
+    # Activate virtual environment
+    .\venv\Scripts\Activate.ps1
+    
+    # Install dependencies
+    pip install -r src/requirements.txt
+    
+    # Run database migration (create schema)
+    flask db upgrade
+    
+    # (Optional) Seed database with mock tasks
+    python src/seed_data.py
+    ```
+*   **macOS / Linux:**
+    ```bash
+    # Create virtual environment
+    python3 -m venv venv
+    
+    # Activate virtual environment
+    source venv/bin/activate
+    
+    # Install dependencies
+    pip install -r src/requirements.txt
+    
+    # Run database migration (create schema)
+    flask db upgrade
+    
+    # (Optional) Seed database with mock tasks
+    python3 src/seed_data.py
+    ```
 
-The database is automatically created on first run via `db.create_all()`. To run Alembic migrations:
-
+### 4. Start Backend Server
+Start the Flask backend application:
 ```bash
-flask db upgrade
-```
-
-### Step 6 — (Optional) Seed Sample Data
-
-```bash
-python seed_data.py
-```
-
-This creates 8 sample tasks for the first user in the database. You must log in with Google first to have a user in the DB.
-
----
-
-## How to Run
-
-### Run the Backend (Flask Server)
-
-```bash
-cd src
 flask run
 ```
+The server will boot up and be accessible locally at: **`http://localhost:5000`**
 
-The server starts at: **http://localhost:5000**
+### 5. Install Frontend Dependencies and Start Frontend
+This application uses a 3-tier architecture with a frontend built on standard **HTML5, CSS3, and Vanilla JavaScript**. 
+*   **No separate frontend dependencies** (Node.js/npm) are required.
+*   **No separate frontend server** is needed; the frontend files are served directly by the Flask backend application.
+*   Starting the backend server in Step 4 automatically hosts and starts the frontend.
 
-### Run the Frontend
-
-The frontend is served **by Flask itself** — no separate frontend server is needed. Simply open:
-
-```
-http://localhost:5000
-```
-
-You will see the login page. Sign in with Google to access the dashboard.
-
-### Run the Full System from a Clean Machine
-
-```bash
-# 1. Clone
-git clone https://github.com/tayduacukhoi123-sudo/Intelligent-Task-Scheduling-and-Decision-Support-web-app.git
-cd Intelligent-Task-Scheduling-and-Decision-Support-web-app/src
-
-# 2. Virtual environment
-python -m venv venv
-venv\Scripts\activate          # Windows
-# source venv/bin/activate     # macOS/Linux
-
-# 3. Install dependencies
-pip install -r requirements.txt
-
-# 4. Configure environment
-copy .env.example .flaskenv    # Windows
-# cp .env.example .flaskenv    # macOS/Linux
-# → Edit .flaskenv with your real keys
-
-# 5. Initialize DB + run
-flask db upgrade
-flask run
-
-# 6. Open http://localhost:5000 in your browser
-```
-
----
-
-## Demo Account
-
-This app uses **Google OAuth 2.0** for authentication.
-
-To test the app:
-1. Go to `http://localhost:5000`
-2. Click **"Sign in with Google"**
-3. Use any Google account to log in — a user profile is created automatically on first sign-in
-
-> **Note:** For the grading team — if the Google OAuth Client ID has been restricted to specific test accounts, please contact the team for access or use the deployed version at the live demo URL above.
->
-> If a specific demo account has been set up, credentials will be provided in the submission email.
+### 6. Open the Application and Login with Demo Account
+1. Open your web browser and navigate to: **`http://localhost:5000`**
+2. Click the **"Sign in with Google"** button.
+3. Log in using any valid Google Account. Since Google OAuth 2.0 is integrated, a new user profile will be automatically provisioned in the database upon your first successful login.
 
 ---
 

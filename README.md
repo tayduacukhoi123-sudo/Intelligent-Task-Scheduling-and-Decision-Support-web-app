@@ -12,7 +12,7 @@ A web-based time management application that accepts unstructured task input and
 **Group:** Group 2
 
 | Name | Student ID | Role | Responsibilities |
-|------|-----------|------|-----------------|
+|------|-----------|------|-----------------| 
 | Hoàng Trung Đức | 2301040046 | BA / PM | Requirements gathering, ERD design, API specification, project tracking, final report |
 | Nguyễn Minh Quang | — | Backend Dev | Flask project setup, database connection, models, CRUD APIs, CORS configuration, authentication |
 | Chu Minh Hiếu | 2201040065 | Algorithm Dev | Algorithm implementation, web appearance design, performance metrics, AI API integration |
@@ -57,47 +57,42 @@ A web-based time management application that accepts unstructured task input and
 ## Project Structure
 
 ```
-Intelligent-Task-Scheduling-and-Decision-Support-web-app/
+Group_02_TaskPriorityManager_source_code/
 ├── README.md                  # This file
+├── .env.example               # Environment variable template
+├── .gitignore                 # Git ignore rules
+├── requirements.txt           # Python dependencies
 ├── render.yaml                # Render deployment config
+├── Procfile                   # Gunicorn entry point (production)
+├── start.sh                   # Startup script (migration + serve)
 │
-└── src/                       # ← All source code lives here
-    ├── .env.example           # Environment variable template
-    ├── .gitignore             # Git ignore rules
-    ├── requirements.txt       # Python dependencies
-    ├── Procfile               # Gunicorn entry point (production)
-    ├── start.sh               # Startup script (migration + serve)
-    │
-    ├── app.py                 # Flask app factory (create_app)
-    ├── extensions.py          # SQLAlchemy, Migrate, Mail instances
-    ├── models.py              # Database models (User, Task, Schedule)
-    ├── routes.py              # All API & page routes (Blueprint)
-    ├── algorithm.py           # Priority scoring engine + Eisenhower
-    ├── scheduler.py           # APScheduler daily notification job
-    ├── mail_service.py        # HTML/plain-text email builder + sender
-    ├── seed_data.py           # Sample data seeder for testing
-    ├── schema.sql             # SQL database schema (SQLite/PostgreSQL compatible)
-    ├── fix_db_schema.py       # One-time DB migration fix script
-    ├── update_schema.py       # Add completed_at column script
-    ├── diagram                # ERD diagram (draw.io XML)
-    ├── workflow_interworking.txt  # Architecture documentation
-    │
-    ├── migrations/            # Flask-Migrate (Alembic) migrations
-    │   ├── alembic.ini
-    │   ├── env.py
-    │   ├── script.py.mako
-    │   └── versions/          # Migration version files
-    │
-    ├── static/                # Frontend assets
-    │   ├── script.js          # Main JavaScript (API calls, UI logic)
-    │   └── styles.css         # All CSS styles
-    │
-    └── templates/             # Jinja2 HTML templates
-        ├── login.html         # Login page (Google OAuth)
-        ├── index.html         # Dashboard (main page)
-        ├── task.html          # Task management page
-        ├── schedule.html      # Eisenhower Matrix schedule view
-        └── history.html       # Completed task history
+├── app.py                     # Flask app factory (create_app)
+├── extensions.py              # SQLAlchemy, Migrate, Mail instances
+├── models.py                  # Database models (User, Task, Schedule)
+├── routes.py                  # All API & page routes (Blueprint)
+├── algorithm.py               # Priority scoring engine + Eisenhower
+├── scheduler.py               # APScheduler daily notification job
+├── mail_service.py            # HTML/plain-text email builder + sender
+├── seed_data.py               # Sample data seeder for testing
+├── schema.sql                 # SQL database schema (SQLite/PostgreSQL compatible)
+├── diagram                    # ERD diagram (draw.io XML)
+│
+├── migrations/                # Flask-Migrate (Alembic) migrations
+│   ├── alembic.ini
+│   ├── env.py
+│   ├── script.py.mako
+│   └── versions/              # Migration version files
+│
+├── static/                    # Frontend assets
+│   ├── script.js              # Main JavaScript (API calls, UI logic)
+│   └── styles.css             # All CSS styles
+│
+└── templates/                 # Jinja2 HTML templates
+    ├── login.html             # Login page (Google OAuth)
+    ├── index.html             # Dashboard (main page)
+    ├── task.html              # Task management page
+    ├── schedule.html          # Eisenhower Matrix schedule view
+    └── history.html           # Completed task history
 ```
 
 ---
@@ -112,10 +107,9 @@ Ensure you have the following installed on your machine:
 *   **Git**: [Download Git](https://git-scm.com/downloads)
 
 ### 2. Copy .env.example to .env and Fill Values
-Clone this repository and go to the project directory:
+Navigate to the `Group_02_TaskPriorityManager_source_code` directory:
 ```bash
-git clone https://github.com/tayduacukhoi123-sudo/Intelligent-Task-Scheduling-and-Decision-Support-web-app.git
-cd Intelligent-Task-Scheduling-and-Decision-Support-web-app
+cd Group_02_TaskPriorityManager_source_code
 ```
 
 Copy the template environment configuration file to `.env`:
@@ -130,7 +124,7 @@ Copy the template environment configuration file to `.env`:
 
 Open the newly created `.env` file and fill in the values:
 ```env
-FLASK_APP=src/app.py
+FLASK_APP=app.py
 FLASK_DEBUG=1
 DATABASE_URL=sqlite:///database.db
 SECRET_KEY=generate-a-random-string-here
@@ -163,13 +157,13 @@ Create a virtual environment, activate it, install dependencies, and run migrati
     .\venv\Scripts\Activate.ps1
     
     # Install dependencies
-    pip install -r src/requirements.txt
+    pip install -r requirements.txt
     
     # Run database migration (create schema)
     flask db upgrade
     
     # (Optional) Seed database with mock tasks
-    python src/seed_data.py
+    python seed_data.py
     ```
 *   **macOS / Linux:**
     ```bash
@@ -180,13 +174,13 @@ Create a virtual environment, activate it, install dependencies, and run migrati
     source venv/bin/activate
     
     # Install dependencies
-    pip install -r src/requirements.txt
+    pip install -r requirements.txt
     
     # Run database migration (create schema)
     flask db upgrade
     
     # (Optional) Seed database with mock tasks
-    python3 src/seed_data.py
+    python3 seed_data.py
     ```
 
 ### 4. Start Backend Server
@@ -259,7 +253,7 @@ $$
 $$
 
 | Constant | Value | Meaning |
-|----------|-------|---------|
+|----------|-------|---------| 
 | W_U | 0.3 | Urgency weight |
 | W_I | 0.4 | Importance weight |
 | W_S | 0.3 | Severity weight |
